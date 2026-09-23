@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  <title>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 | 雨季少年的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/index.html">
+<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:description" content="smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。">
+<meta property="article:published_time" content="2026-09-24T05:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-24T05:00:00.000Z">
+<meta property="article:author" content="雨季少年">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">雨季少年的博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-smartstrm-cleanroom-go" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/09/24/smartstrm-cleanroom-go/" class="article-date">
+  <time datetime="2026-09-24T05:00:00.000Z" itemprop="datePublished">2026-09-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+          
+    <h1 class="article-title" itemprop="name">
+      SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <p><a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">smartstrm-cleanroom</a> 是一个用 Go 1.23 从零实现的 STRM 生成 / 任务自动化 / 安全播放服务，AGPL-3.0 发布。</p>
+<p>它最有意思的地方不是"又做了一个 STRM 工具"，而是它把<strong>"什么算完成"这件事写成了规则</strong>：功能矩阵里 <code>🟡</code> 部分实现与 <code>⬜</code> 未实现都不许计入完成，每个 <code>✅</code> 必须附上文件、测试、真实协议或容器运行证据。</p>
+<h2 id="一clean-room-的边界"><a href="#一clean-room-的边界" class="headerlink" title="一、clean-room 的边界"></a>一、clean-room 的边界</h2>
+<p>README 开头就把话说死了：本仓库依据公开功能说明和公开协议从零编写，<strong>不包含原闭源项目的私有源码，不绕过许可证，也不调用未经授权的私有 API</strong>；项目名称只用于说明兼容目标。落到实现上，还额外加了两条自我约束：</p>
+<ul>
+<li>不具备可信 File ID API 的驱动<strong>不伪造稳定 File ID</strong>，改用路径模式；</li>
+<li>不逆向闭源程序、不猜测私有协议字段。</li>
+</ul>
+<p>这类"能力边界声明"看起来像免责条款，实际是设计约束：它决定了当某个云盘没有公开 API 时，正确的做法是<strong>通过 OpenList 聚合接入</strong>并在矩阵里标成 <code>🟡</code>，而不是靠未公开的移动端接口"先跑通再说"。</p>
+<h2 id="二代码结构与体量"><a href="#二代码结构与体量" class="headerlink" title="二、代码结构与体量"></a>二、代码结构与体量</h2>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">cmd/smartstrm/        入口</span><br><span class="line">internal/app/         HTTP API、管理 UI、集成入口（app.go ~1581 行）</span><br><span class="line">internal/config/      严格配置、迁移、敏感字段处理</span><br><span class="line">internal/storage/     local / webdav / openlist / ani_open 驱动</span><br><span class="line">internal/task/        调度、监听、生成器、插件、工具箱</span><br><span class="line">internal/tmdb/        TMDB 客户端与受限图片代理</span><br><span class="line">internal/mediaproxy/  媒体服务器代理与 PlaybackInfo 改写</span><br><span class="line">internal/signature/   HMAC 播放签名</span><br><span class="line">internal/pathpolicy/  本地路径与符号链接边界</span><br><span class="line">internal/urlpolicy/   远端 URL/endpoint 校验</span><br><span class="line">internal/cronexpr/    五段 crontab 解析</span><br><span class="line">internal/history/     0600 有界 JSONL 运行历史</span><br></pre></td></tr></table></figure>
+<p>约 9,400 行 Go，<code>internal/*</code> 下 <strong>142 个 <code>Test</code> 函数</strong>（<code>app_test.go</code> 28 个、<code>generator_test.go</code> 22 个）。外部依赖只有 <code>testify</code> —— 存储、签名、Cron、代理全部手写，没有为了省事引入大型框架。</p>
+<h2 id="三生成器并发之外的正确性"><a href="#三生成器并发之外的正确性" class="headerlink" title="三、生成器：并发之外的正确性"></a>三、生成器：并发之外的正确性</h2>
+<p><code>internal/task/generator.go</code>（798 行）是整个项目最容易出错的地方，它用几条规则把风险框住：</p>
+<ul>
+<li><strong>增量</strong>：<code>Incremental</code> 打开时，目标文件已存在就跳过，但仍记为"预期存在"；<code>DirTimeCheck</code> 把远端目录时间与本地生成目录比对，成功后 <code>os.Chtimes</code> 回写；</li>
+<li><strong>单条失败隔离</strong>：改名、复制、子目录列举、STRM 内容、写入任一失败都只记录 <code>failures</code> 并 <code>continue</code>，只有 context 取消或非列举型致命错误才中断整轮——<strong>一个大目录里有一个坏文件名，不该让整轮任务失败</strong>；</li>
+<li><strong>同步删除的安全闸</strong>：<code>removeStale</code> 只在 <code>SyncDelete &amp;&amp; overridePath == ""</code> 时执行，而且<strong>必须整轮零失败</strong>；删除范围限制在 <code>.strm</code> 与 <code>CopyExt</code> 内的文件，并尊重 <code>KeepLocal</code> glob；</li>
+<li><strong>目标冲突预检</strong>：<code>preflightDirectoryTargets</code> 在写入前就拒绝两个源映射到同一目标的情况，而不是等覆盖发生后再补救。</li>
+</ul>
+<p>另外任务队列是<strong>每个任务一条有界队列 + 串行 worker</strong>，工具箱类操作（内容替换、全量覆写、清除）用 <code>sync.Mutex</code> 做互斥；多任务入队用单独的 <code>enqueueMu</code> 保证原子性。</p>
+<h2 id="四签名播放与-url-策略"><a href="#四签名播放与-url-策略" class="headerlink" title="四、签名播放与 URL 策略"></a>四、签名播放与 URL 策略</h2>
+<p>播放地址是 HMAC 签名的，<code>internal/signature</code> 之外还配了 <code>internal/urlpolicy</code>：</p>
+<ul>
+<li>生成的 STRM URL 用 <code>QueryEscape</code> 编码，<strong>字面 <code>%</code>、<code>%23</code>、<code>%2F</code> 这类文件名必须保证只解码一次</strong>；少编码一层时 HMAC 直接拒绝——这条专门防"编码层级不一致导致的签名绕过"；</li>
+<li>远端直链（OpenList <code>raw_url</code>、ANi feed link、统一 <code>/stream</code> 重定向出口）三层校验：必须是绝对 HTTP(S)、禁止内嵌凭据与 Fragment、不回显恶意 URL，同时<strong>保留 CDN 签名所需的 Query</strong>；</li>
+<li>存储 endpoint 在保存与启动前统一校验（HTTP(S)、无内嵌凭据/Fragment；OpenList/WebDAV 基地址还禁止 Query 但保留合法子路径）；</li>
+<li>WebDAV 播放响应只代理媒体 200/206 与无正文 304/416，其余状态映射成脱敏 502；416 只保留安全 Range 元数据；HEAD 上游用 HEAD 且不复制正文；响应头走允许列表并拒绝 <code>Set-Cookie</code>。</li>
+</ul>
+<p>远端错误一律<strong>脱敏</strong>：不回报 WebDAV/OpenList 的 reason phrase 或响应正文，OpenList 业务错误不回显 <code>message</code>，只保留协议与数字状态码——避免把别人回显的凭据、token 或换行内容带进日志。</p>
+<h2 id="五存储驱动把能连上做成能证明"><a href="#五存储驱动把能连上做成能证明" class="headerlink" title="五、存储驱动：把&quot;能连上&quot;做成&quot;能证明&quot;"></a>五、存储驱动：把"能连上"做成"能证明"</h2>
+<ul>
+<li><strong>Local</strong>：root 必须是绝对路径且不能是文件系统根；解析符号链接后<strong>再校验一次</strong>；隐藏或拒读的逃逸链接会被拒；Delete/Rename/Move 操作链接本身而不跟随目标；</li>
+<li><strong>WebDAV</strong>：PROPFIND 结果规范化后按 href 跳过当前目录，不依赖响应顺序，兼容绝对 URL / 路径 / 相对 href / percent-encoded href / HTTP-date / RFC3339 UTC / 空修改时间；</li>
+<li><strong>OpenList</strong>：显式分页（200 条/页），测试里完整读取 450 条目录，支持 <code>total</code> 收敛、只在第一页强刷，并拒绝重复页、提前出现的空页和超过 100,000 条的异常响应；</li>
+<li><strong>响应上限</strong>：ANi Open XML、OpenList JSON、WebDAV PROPFIND XML 统一 <strong>16 MiB 硬上限</strong>，并拒绝超限、第二个根对象或尾随字符；而媒体直链与 Range 代理保持流式。</li>
+</ul>
+<h2 id="六配置与部署"><a href="#六配置与部署" class="headerlink" title="六、配置与部署"></a>六、配置与部署</h2>
+<ul>
+<li>配置是<strong>严格模式</strong>：未知字段、类型错误、非法 URL、危险的本地根、无效 Cron 或不支持的能力都会阻止保存；保存会把整份候选配置严格校验后<strong>原子写回同一个 <code>0600</code> 文件</strong>，不会"只启动一半后台任务"；</li>
+<li>schema 版本化：v1 起步，旧配置自动迁移，未来版本直接拒绝；</li>
+<li>容器以 UID/GID 10001 运行，<code>docker compose</code> 起服务，健康检查 <code>GET /health</code>；管理页面在 <code>8024</code>，媒体代理 <code>8097</code> 是可选的、只有配置后才监听；</li>
+<li><code>/robots.txt</code> 全站 <code>Disallow: /</code>，且无需认证挑战。</li>
+</ul>
+<h2 id="七cron-也会咬人"><a href="#七cron-也会咬人" class="headerlink" title="七、Cron 也会咬人"></a>七、Cron 也会咬人</h2>
+<p><code>internal/cronexpr</code> 支持标准五段表达式（通配符、范围、列表、步长），日/周是 OR 语义。真正值得注意的是两处：</p>
+<ul>
+<li>配置保存前拒绝非法表达式，<strong>Manager 在启动任何 worker/watcher 之前完成全量预检</strong>；</li>
+<li><code>2 月 31 日</code> 这类"永远不会到达"的日期通过跨闰年有界匹配处理，并有容器启动 + Chrome 无白屏验证——这类输入不会报错，只会让你的任务永远不跑，属于最难排查的一类 bug。</li>
+</ul>
+<h2 id="八验证体系"><a href="#八验证体系" class="headerlink" title="八、验证体系"></a>八、验证体系</h2>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gofmt -l / go vet ./... / go test -race ./...</span><br><span class="line">python3 -m json.tool config.example.json &gt;/dev/null</span><br><span class="line">docker compose config -q</span><br></pre></td></tr></table></figure>
+<p>CI 在 push/PR 上跑格式检查、<code>go mod tidy</code> diff、vet、<strong><code>-race</code> 测试</strong>、JSON 校验、markdown 链接检查、compose 校验与镜像构建；此外 CodeQL 每周一 cron 扫描 Go。功能矩阵里还记录了基于真实 Chrome 的交互验证（任务/存储/日志/配置页，含截图与零 console 错误）以及"到 OpenList 302"的容器 E2E。</p>
+<h2 id="九已知边界"><a href="#九已知边界" class="headerlink" title="九、已知边界"></a>九、已知边界</h2>
+<p>原生夸克/115/天翼/123/迅雷账号驱动未实现（经 OpenList 使用）；Plex、飞牛影视与特定 Emby/Jellyfin 客户端的深度兼容仍待真实验证；TMDB 的实网限流/代理/地区响应需要真实 Key；File ID 模式的真实驱动与账号验证待完成。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
+<p>这个项目示范了一种可复制的工程态度：<strong>把外部依赖的每个不变量写进策略包</strong>（pathpolicy / urlpolicy / signature / cronexpr），<strong>把"部分完成"和"未完成"从"完成"里剔除</strong>，并且让"危险操作"（同步删除）必须通过一整轮的零失败才有资格执行。</p>
+<p>仓库：<a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">sakuradairong/smartstrm-cleanroom</a>（AGPL-3.0）</p>
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/" data-id="a5d231b63ea3b191d0f51358" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+      
+<nav id="article-nav">
+  
+    <a href="/2026/09/24/keystats-3d-heatmap/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2026/09/24/bilidesk-tauri-libmpv/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020–2026 雨季少年<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

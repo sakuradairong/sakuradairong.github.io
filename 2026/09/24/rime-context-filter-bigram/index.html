@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  <title>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 | 雨季少年的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/rime-context-filter-bigram/index.html">
+<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:description" content="rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。">
+<meta property="article:published_time" content="2026-09-24T07:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-24T07:00:00.000Z">
+<meta property="article:author" content="雨季少年">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">雨季少年的博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-rime-context-filter-bigram" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/09/24/rime-context-filter-bigram/" class="article-date">
+  <time datetime="2026-09-24T07:00:00.000Z" itemprop="datePublished">2026-09-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+          
+    <h1 class="article-title" itemprop="name">
+      Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <p>输入法里加"联想"很容易做坏——常见的失败模式是：把词频、后缀匹配、字符串拼接混在一起，最后得到一个经常乱序、还悄悄覆盖用户词库的过滤器。</p>
+<p><a href="https://github.com/sakuradairong/rime-lua-scripts" target="_blank" rel="noopener">rime_context_filter</a> 的定位很窄，也很清楚：<strong>只做词级二元模型（bigram）</strong>，只按相邻两个有效词的搭配统计来微调候选顺序，其余交给 Rime 原生的用户词典（造词、调频、删词都不越权）。</p>
+<h2 id="一它做什么不做什么"><a href="#一它做什么不做什么" class="headerlink" title="一、它做什么、不做什么"></a>一、它做什么、不做什么</h2>
+<p>效果可以一句话描述：当你先确认了"接下来的"，之后再输入 <code>renwu</code>，如果"任务"在相同前文下被稳定选择过两次以上，它就会被适度提前。</p>
+<p>边界同样重要：</p>
+<ul>
+<li><strong>不做字符串后缀匹配、不做拼接伪高阶</strong>：只统计"词 A → 词 B"的相邻共现；</li>
+<li><strong>不把分数写进 Rime 的 <code>quality</code></strong>：模型分只用于同 span 内的相对重排；</li>
+<li><strong>不替代用户词典</strong>：它只是过滤器链末端的一道排序修正。</li>
+</ul>
+<h2 id="二打分概率-置信度"><a href="#二打分概率-置信度" class="headerlink" title="二、打分：概率 × 置信度"></a>二、打分：概率 × 置信度</h2>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">score(B | A) = P(B | A)（加性平滑） × 置信度(count)</span><br></pre></td></tr></table></figure>
+<p>工程上的关键设计是<strong>"落盘 ≠ 提权"</strong>：</p>
+<ul>
+<li><code>count &gt;= 1</code> 就持久化（保留统计，便于长期观察）；</li>
+<li>但真正提前候选需要 <code>count &gt;= promote_min_count</code>（默认 2）且分数过门槛；</li>
+<li>单次出现只记账，不会把候选顶上去——这正是"只用过一次的词"不该改写排序的意思。</li>
+</ul>
+<p>低置信度一律保持原序；<code>promote_min_count</code>、<code>max_promote</code>（每个输入范围最多提前几个）、<code>protect_prefix</code>（前 N 个候选冻结，可配合置顶）都可以配。</p>
+<h2 id="三生命周期在哪个钩子上学习"><a href="#三生命周期在哪个钩子上学习" class="headerlink" title="三、生命周期：在哪个钩子上学习"></a>三、生命周期：在哪个钩子上学习</h2>
+<p>Rime 的过滤/通知器是这套逻辑的骨架：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">select (group 0) → 更新窗口，词对暂存</span><br><span class="line">update           → 退格回滚 / Esc 取消（不学习）</span><br><span class="line">commit           → 落成 bigram；达到 save_interval 则存盘</span><br><span class="line">filter           → 仅用 P(w|prev) × 置信度；同 span 内稳定提权；yield 原 Candidate</span><br></pre></td></tr></table></figure>
+<p>几处细节值得抄：</p>
+<ul>
+<li><code>select_notifier</code> 挂在 <strong>group 0</strong> 上，保证在无分组回调之前触发，刚选的词不会被下一次更新冲掉；</li>
+<li><code>commit_notifier</code> 用一个 <code>_in_commit</code> 标志抑制提交期间的重入更新；</li>
+<li><strong>标点、英文、空闲超时都会断开上下文</strong>（<code>idle_timeout_sec</code> 默认 120，用 <code>os.time()</code> 判断），避免"半小时前的词"还在影响现在的排序；</li>
+<li>整句无分段直接上屏时，只有整段本身是可学习的单个词才学习，否则断开。</li>
+</ul>
+<h2 id="四性能热路径不碰磁盘"><a href="#四性能热路径不碰磁盘" class="headerlink" title="四、性能：热路径不碰磁盘"></a>四、性能：热路径不碰磁盘</h2>
+<p>过滤器在每个按键周期都会跑，所以：</p>
+<ul>
+<li><strong>热路径（filter/score/reorder）没有任何磁盘 IO</strong>，无有效前文时直接透传；</li>
+<li>存盘按 <code>save_interval</code>（默认 30 次上屏）触发；<code>save_interval = 0</code> 表示每次上屏都存；触发条件是 <code>dirty_commits &gt;= interval</code> 或 <code>commit_count &gt;= interval</code>；</li>
+<li>容量上限 <code>max_contexts = 4000</code>、<code>max_successors = 48</code>，超出后淘汰低频；</li>
+<li><code>reorder_limit = 80</code>：只重排前 80 个候选，超出部分保持原样（后面本来也没人选）；</li>
+<li>测试里给了明确的性能门槛：<strong>800 个上下文 × 每个 20 个后继，500 轮 <code>score_candidates</code> + 对 80 个候选重排必须 &lt; 2.0 秒</strong>；存盘 800 个上下文 &lt; 5.0 秒。</li>
+</ul>
+<h2 id="五落盘原子替换-损坏保护"><a href="#五落盘原子替换-损坏保护" class="headerlink" title="五、落盘：原子替换 + 损坏保护"></a>五、落盘：原子替换 + 损坏保护</h2>
+<p>输入法的数据文件最怕两件事：写坏、丢。这里的策略是"先保命再替换"：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">写 .tmp → 校验 → 主文件改名为 .bak → .tmp 改名为主文件</span><br><span class="line">失败路径返回类型化原因：open_tmp | write | flush | close | rename_to_bak | rename_tmp</span><br></pre></td></tr></table></figure>
+<ul>
+<li>任一步失败都<strong>保留旧数据</strong>并把 <code>dirty</code> 留着下次重试，同时累加 <code>save_failures</code>；</li>
+<li>启动时如果主文件缺失，恢复顺序是 <code>.bak</code> → <code>.tmp</code>；</li>
+<li><strong>损坏文件不会被静默当成空表覆盖</strong>：如果损坏后仍有新学习，会写到旁路文件 <code>context_learned.data.recovered</code>；</li>
+<li>同步冲突文件（<code>*.sync-conflict*</code>）不会被自动删除或合并——这是把决定权留给用户。</li>
+</ul>
+<p>数据格式是版本化的 v7：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">return {</span><br><span class="line">  _meta = { version = 7, decay_at = 1735689600, saved_at = 1735689600 },</span><br><span class="line">  data = {</span><br><span class="line">    [&quot;接下来的&quot;] = { [&quot;任务&quot;] = 8, [&quot;工作&quot;] = 3 },</span><br><span class="line">    [&quot;完成&quot;]     = { [&quot;任务&quot;] = 1 },</span><br><span class="line">  },</span><br><span class="line">}</span><br></pre></td></tr></table></figure>
+<p>可以读 v5 扁平格式与 v6（<code>_meta</code> + <code>data</code> 但无 version），首次保存写成 v7。按自然日衰减（<code>decay_rate = 0.95</code>、<code>decay_period_days = 1</code>），与打字频率无关。</p>
+<p>另外，模块级共享一个 <code>STORE</code>（learned/totals/meta/dirty/refs/save_failures），多个过滤器实例不会用过期快照互相覆盖；<code>refs</code> 在 bind/unbind 时计数，<code>reset_store_for_tests()</code> 供测试清理。</p>
+<h2 id="六装在哪怎么验证"><a href="#六装在哪怎么验证" class="headerlink" title="六、装在哪、怎么验证"></a>六、装在哪、怎么验证</h2>
+<p><strong>必须追加到 <code>engine/filters</code> 末尾（<code>uniquifier</code> 之后）</strong>。用 <code>"engine/filters/@after 6"</code> 会插到 <code>pin_cand_filter</code> / emoji / 简繁 / <code>uniquifier</code> 之前，可能打乱置顶与去重；脚本对 ★／📌／emoji type 有保护，但那不能替代正确的顺序。</p>
+<p>测试与 CI：</p>
+<ul>
+<li>单个 Lua 测试文件分 13 组：utf8 helper、可学习词与断句符、序列化保留 <code>count==1</code>、衰减、bigram 打分（<strong>专门断言不存在后缀/拼接式伪高阶</strong>）、重排稳定性与 span 隔离、保护位与去重身份、读写往返（含损坏与原子失败）、学习流程、多实例共享不互相覆盖、容量淘汰、候选对象身份与低置信度透传、路径解析、性能冒烟；</li>
+<li>具体的断言数字也很实在：<code>prune_store(max_ctx=5)</code> 后正好剩 5 个上下文且保留热度最高的；<code>max_succ=10</code> 后剩 10 个后继且 <code>totals</code> 与剩余和一致；重排后顺序为 <code>任务,工作,人物,任命</code>；分数 <code>0.05 &lt; PROMOTE_SCORE</code> 时顺序不变；</li>
+<li>CI 三个作业：<code>luacheck</code> 静态检查，外加 <strong>Lua 5.3 / LuaJIT / Lua 5.1</strong> 三套解释器各跑一遍全部测试。</li>
+</ul>
+<h2 id="七限制"><a href="#七限制" class="headerlink" title="七、限制"></a>七、限制</h2>
+<ul>
+<li><code>fini</code> 只是尽力而为的落盘手段，<strong>进程退出仍可能丢掉未达 <code>save_interval</code> 的改动</strong>；</li>
+<li>旧版本曾丢弃 <code>count == 1</code> 的搭配，那部分历史无法无损恢复；</li>
+<li>不处理同步冲突文件；模型分不进 <code>quality</code>，所以它只影响同一次输入的候选顺序，不改动 Rime 自身的词频。</li>
+</ul>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
+<p>它是"小模型也值得工程化"的样本：<strong>统计与提权解耦</strong>（可以放心记录而不用担心污染排序）、<strong>热路径零 IO</strong>、<strong>原子落盘 + 显式失败原因</strong>、<strong>跨版本兼容读取</strong>。这几条放在任何本地学习功能里都成立。</p>
+<p>仓库：<a href="https://github.com/sakuradairong/rime-lua-scripts" target="_blank" rel="noopener">sakuradairong/rime-lua-scripts</a>（MIT）</p>
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://sakuradairong.github.io/2026/09/24/rime-context-filter-bigram/" data-id="5a597a207e7ebb59bc528a34" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+      
+<nav id="article-nav">
+  
+    <a href="/2026/09/24/astrbot-plugin-linuxsb/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2026/09/24/keystats-3d-heatmap/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020–2026 雨季少年<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

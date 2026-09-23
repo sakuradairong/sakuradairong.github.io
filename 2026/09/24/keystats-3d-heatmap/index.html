@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  <title>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽 | 雨季少年的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/keystats-3d-heatmap/index.html">
+<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:description" content="把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。">
+<meta property="article:published_time" content="2026-09-24T06:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-24T06:00:00.000Z">
+<meta property="article:author" content="雨季少年">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">雨季少年的博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-keystats-3d-heatmap" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/09/24/keystats-3d-heatmap/" class="article-date">
+  <time datetime="2026-09-24T06:00:00.000Z" itemprop="datePublished">2026-09-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+          
+    <h1 class="article-title" itemprop="name">
+      KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <p><a href="https://github.com/sakuradairong/keystats-heatmap" target="_blank" rel="noopener">KeyStats 键盘热力图</a> 的目标很朴素：把 KeyStats 导出的按键统计 JSON，渲染成一张<strong>可交互的三维键盘热力图</strong>——颜色深浅和键帽高度同时表示频次。它只有两三千行代码，但每一层都藏着被低估的细节。</p>
+<h2 id="一输入清洗三种结构一个出口"><a href="#一输入清洗三种结构一个出口" class="headerlink" title="一、输入清洗：三种结构，一个出口"></a>一、输入清洗：三种结构，一个出口</h2>
+<p>真实世界的"导出文件"从来不止一种形状。<code>src/lib/keystats.ts</code>（392 行）一口气接受三种：</p>
+<ol>
+<li>完整导出：<code>{version?, scope?, exportedAt?, currentStats, history}</code>；</li>
+<li>单日记录：根节点直接带 <code>keyPressCounts</code>（没有 <code>history</code> / <code>currentStats</code>），自动包装成 <code>{version: 1, scope: "currentDevice"}</code>；</li>
+<li>历史映射：根节点是 <code>日期 → 单日记录</code> 的映射（每个值必须是带 <code>keyPressCounts</code> 的对象），取最新日期作为 <code>currentStats</code>。</li>
+</ol>
+<p>清洗规则比"能读进来"更重要：</p>
+<ul>
+<li><strong>只保留 <code>date</code>、<code>keyPresses</code>、<code>keyPressCounts</code></strong>，应用统计（<code>appStats</code>）、鼠标距离这类与键盘无关的字段直接丢弃——这是隐私边界，不是优化；</li>
+<li><code>date</code> 统一规约成 <code>YYYY-MM-DD</code>；计数出现非数字、负数、非有限值时<strong>整天拒绝</strong>，而不是当成 0；</li>
+<li><code>history</code> 里的 key 与记录内 <code>date</code> 不一致直接抛错；</li>
+<li>错误信息是中文且面向用户（<code>无效的 JSON：根节点必须是对象</code>），因为它们的终点是一个错误提示，而不是日志；</li>
+<li>派生函数有明确语义：<code>preferActiveDate</code> 取"最新且有按键"的一天；<code>totalKeyPresses</code> 在 <code>keyPresses</code> 显式为 0 时以 0 为准（<strong>显式 0 是权威值，不能被求和覆盖</strong>）。</li>
+</ul>
+<h2 id="二组合键ctrlc-要同时计到-ctrl-和-c"><a href="#二组合键ctrlc-要同时计到-ctrl-和-c" class="headerlink" title="二、组合键：Ctrl+C 要同时计到 Ctrl 和 C"></a>二、组合键：<code>Ctrl+C</code> 要同时计到 Ctrl 和 C</h2>
+<p>这是整个项目最容易做错的一步。<code>normalizeHeatmapKey</code> 先把原始键名规范化：去空格转大写、<code>+</code> 归一成 <code>=</code>、单字符直接通过、<code>F\d+</code> 识别功能键、<code>NUM*</code> 映射到 <code>Num1..Num9</code> / <code>Num.</code> / <code>Num+</code> / <code>Num-</code> / <code>Num/</code> / <code>Num*</code> / <code>NumEnter</code>，再走约 <strong>90 条别名表</strong>（<code>CTRL/CONTROL → Ctrl</code>、<code>OPTION/ALT → Option</code>、<code>WIN/CMD → Cmd</code>、<code>MENU → Apps</code>、<code>RETURN → Return</code>、<code>OEM_3 → \``、</code>OEM_5 → ` 等）；无法识别就返回 <code>null</code>，<strong>不猜</strong>。</p>
+<p>然后是组合键拆分的两个坑：</p>
+<ul>
+<li><code>Num+</code> 本身含 <code>+</code>，所以拆分前先用占位符 <code>__KEYSTATS_NUM_PLUS__</code> 保护，拆分后再还原；连续 <code>++</code> 会追加一个字面 <code>+</code>；</li>
+<li>拆分后<strong>每个 token 都记满分</strong>：<code>Ctrl+C</code> 同时给 Ctrl 和 C 各加一次——这样"某个组合键用得多"和"某个修饰键用得多"都能在图上体现。</li>
+</ul>
+<p>布局层还有一层归并：<code>resolveKeyCount</code> 把通用修饰键折到<strong>物理左侧键</strong>上（<code>Shift ← LShift + Shift</code>、<code>LCtrl ← LCtrl + Ctrl</code>、<code>LAlt ← LAlt + Option + Alt</code>、<code>LWin ← LWin + Cmd + Win</code>、<code>Return ← Return + Enter</code>、<code>Apps ← Apps + Menu</code>），而右侧变体只吸收自己。因为热力图是按<strong>物理键位</strong>画的（全尺寸 ANSI 104 键），左侧那份数据必须有个落点。</p>
+<h2 id="三色阶为什么是-cielab-对数-95-分位"><a href="#三色阶为什么是-cielab-对数-95-分位" class="headerlink" title="三、色阶：为什么是 CIELAB + 对数 + 95 分位"></a>三、色阶：为什么是 CIELAB + 对数 + 95 分位</h2>
+<p><code>src/lib/heatmap-color.ts</code>（139 行）做了三层处理：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// 1) 定义域取 95 分位，避免一个&quot;神键&quot;把其他键全压暗</span><br><span class="line">export function heatDomain(counts: number[], percentile = 0.95): number {</span><br><span class="line">  // 排序后取 ceil(0.95 * n) - 1，下限为 1</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">// 2) 对数压缩 + 幂次提升，兼顾长尾与对比</span><br><span class="line">export function normalizeHeatCount(count: number, domain: number): number {</span><br><span class="line">  return Math.min(1, Math.log1p(count) / Math.log1p(domain)) ** 1.45;</span><br><span class="line">}</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>95 分位定义域</strong>：如果按最大值归一化，一个被按住不放的宏键会让其余键全部趋近于零，图就废了；分位数让"常态高频键"占满色带；</li>
+<li><strong><code>log1p</code> + 1.45 次幂</strong>：键盘频次天然是长尾分布，纯线性会把 90% 的键压成同一档灰；对数压缩把动态范围拉回来，再用幂次微调对比度；</li>
+<li><strong>CIE 色彩空间插值</strong>：色带是 <code>#d6966d → #c6683b → #a33f19 → #6d250e</code>，停点 <code>[0, 0.36, 0.7, 1]</code>，段内用 <code>d3-interpolate</code> 的 <code>interpolateLab</code> 在 <strong>CIELAB</strong> 里插值。在 sRGB 里线性插值会让中段发灰发脏，Lab 里插值得到的过渡更接近"同一家族的深浅"；</li>
+<li><strong>对比度检测</strong>：<code>contrastText</code> 按 WCAG 相对亮度与对比度，在白/深两色之间选文字颜色；</li>
+<li>未使用的键有专门的中性色 <code>#d6dadc</code>，与"用过但极少"（暖色最浅一档）区分开——<strong>没有数据</strong>和<strong>数据很低</strong>是两件事。</li>
+</ul>
+<h2 id="四布局与-3d-舞台"><a href="#四布局与-3d-舞台" class="headerlink" title="四、布局与 3D 舞台"></a>四、布局与 3D 舞台</h2>
+<p>布局模型 <code>keyboard-layout.ts</code>（167 行）用统一单位描述全尺寸 ANSI 104 键：<code>KEYBOARD_UNIT = 58</code>、<code>KEY_GAP = 7</code>，整盘 22.5 × 6.25 单位 → 1305 × 362.5 px；小键盘/方向键区从 x ≥ 15.25 开始，<code>Num+</code> 与 <code>NumEnter</code> 高度为 2 单位。</p>
+<p>3D 部分（<code>keyboard-heatmap.tsx</code>，543 行）用<strong>纯 CSS 3D</strong>，没有 WebGL：</p>
+<ul>
+<li>键帽总厚度 = <code>baseDepth 12 + normalized * 58 * 0.24</code>（数据贡献约 0–25.9 px），所以"高度"是除颜色之外的第二重编码；</li>
+<li>每个键帽四个面分别做不同的加深处理（顶面用 <code>color-mix</code> 82% 白 → 主色 → 加深 0.08，前面 <code>rotateX(-90deg)</code> 加深 0.21，右侧 <code>rotateY(90deg)</code> 加深 0.31，左侧加深 0.11），靠明暗差异把立体感做出来，而不是靠贴图；</li>
+<li><code>zIndex = y * 100 + x</code> 手动排序，底盘 <code>translateZ(-24px)</code>；</li>
+<li><strong>交互的坑</strong>：CSS 3D 变换后浏览器的命中测试不可靠，所以 hover 是用 <code>document.elementsFromPoint</code> 找 <code>[data-key-id]</code> 并校验是否在盘面内，再配 48 ms 容错定时器处理"划过缝隙"的抖动；点击可钉住（pin），在外侧 <code>pointerdown</code> 或 <code>Escape</code> 取消；提示框用 <code>createPortal</code> 渲染避免被 3D 上下文裁剪。</li>
+</ul>
+<h2 id="五可访问性与移动端"><a href="#五可访问性与移动端" class="headerlink" title="五、可访问性与移动端"></a>五、可访问性与移动端</h2>
+<p>尊重 <code>prefers-reduced-motion</code> 与强制颜色模式，支持鼠标、键盘焦点与触控提示；桌面是三维舞台，移动端切换为横向浏览模式。对"只靠颜色表达量级"的可视化来说，高度编码 + 焦点提示是必须的补偿。</p>
+<h2 id="六隐私与工程"><a href="#六隐私与工程" class="headerlink" title="六、隐私与工程"></a>六、隐私与工程</h2>
+<ul>
+<li>演示数据 <code>public/keystats-public.json</code> <strong>只保留</strong> <code>date</code>、<code>keyPresses</code>、<code>keyPressCounts</code>；<code>.gitignore</code> 覆盖 <code>KeyStats-Export-*.json</code>、<code>daily_stats.json</code>、<code>history.json</code>；</li>
+<li>文件在浏览器本地读取与标准化，不上传服务器；</li>
+<li>项目里还留了一条诚实提醒：<strong>过去提交过的文件不会因为普通删除而从 Git 历史消失</strong>，清理历史需要单独评估——这类话一般没人愿意写在 README 里；</li>
+<li>质量门是 <code>lint → typecheck → vitest → build</code>，另有 Playwright 浏览器用例，CI 拆成 <code>quality</code> 与 <code>browser</code> 两个 job。</li>
+</ul>
+<h2 id="七限制"><a href="#七限制" class="headerlink" title="七、限制"></a>七、限制</h2>
+<p>输入结构只覆盖 KeyStats 的三种导出形态；组合键依赖别名表，遇到未收录的键名会归为未知而不计入；跨设备合并统计需要上游支持。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
+<p>这个项目的可复用经验是三条曲线：<strong>数据入口要容错但赋值要严格</strong>；<strong>归一化先处理异常值（分位数），再处理分布（对数），最后处理感知（CIELAB）</strong>；<strong>物理布局与统计口径必须在同一层对齐</strong>（组合键拆分、修饰键折左）。</p>
+<p>仓库：<a href="https://github.com/sakuradairong/keystats-heatmap" target="_blank" rel="noopener">sakuradairong/keystats-heatmap</a></p>
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://sakuradairong.github.io/2026/09/24/keystats-3d-heatmap/" data-id="1f64f8c1546de8e7275b432b" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+      
+<nav id="article-nav">
+  
+    <a href="/2026/09/24/rime-context-filter-bigram/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2026/09/24/smartstrm-cleanroom-go/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020–2026 雨季少年<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

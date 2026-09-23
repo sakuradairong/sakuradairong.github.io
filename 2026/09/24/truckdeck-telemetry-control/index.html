@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  <title>TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器 | 雨季少年的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/truckdeck-telemetry-control/index.html">
+<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:description" content="TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。">
+<meta property="article:published_time" content="2026-09-24T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-24T01:00:00.000Z">
+<meta property="article:author" content="雨季少年">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">雨季少年的博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-truckdeck-telemetry-control" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/09/24/truckdeck-telemetry-control/" class="article-date">
+  <time datetime="2026-09-24T01:00:00.000Z" itemprop="datePublished">2026-09-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+          
+    <h1 class="article-title" itemprop="name">
+      TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <p>把游戏遥测搬到第二块屏幕上，通常意味着再写一个桌面客户端。而 <a href="https://github.com/sakuradairong/TruckDeck" target="_blank" rel="noopener">TruckDeck</a> 换了个思路：<strong>PC 上只跑一个 Node 服务，手机浏览器打开就是横屏中控</strong>。所有状态以"后续遥测回显"为准，而不是以"命令已发送"为准——这是整个项目最核心的一条约束。</p>
+<h2 id="一它解决什么问题"><a href="#一它解决什么问题" class="headerlink" title="一、它解决什么问题"></a>一、它解决什么问题</h2>
+<p>ETS2/ATS 的第三方遥测生态里，<a href="https://github.com/RenCloud/scs-sdk-plugin" target="_blank" rel="noopener">RenCloud/scs-sdk-plugin</a> 会把游戏状态写进 Windows 共享内存 <code>Local\SCSTelemetry</code>，Node 侧用 <code>trucksim-telemetry</code> 的 <code>getData()</code> 就能读到速度、转速、油量、灯光等字段。TruckDeck 把这条链路接上，再用 WebSocket 广播给手机；反向则把手机上的按钮点按变成游戏按键（Windows <code>SendInput</code>）。</p>
+<p>目标很窄：<strong>只服务局域网、不提供公网隧道、不做账号系统</strong>。默认端口 <code>4000</code>，WebSocket 固定路径 <code>/ws</code>。</p>
+<h2 id="二模块划分"><a href="#二模块划分" class="headerlink" title="二、模块划分"></a>二、模块划分</h2>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">server/</span><br><span class="line">  index.js            # 入口：装配 config / telemetry / input / app / wsHub，注册退出清理</span><br><span class="line">  src/</span><br><span class="line">    app.js            # Express：/health、静态资源、状态页兜底</span><br><span class="line">    config.js         # 常量、钳制、键位合并（maxPayload / helloTimeout / 队列上限）</span><br><span class="line">    lan.js            # 私网 IP、Host、Origin 校验</span><br><span class="line">    wsHub.js          # /ws 升级、握手、限流、广播、命令派发</span><br><span class="line">    keybindsGame.js   # 解析游戏 controls.sii，读真实键位</span><br><span class="line">    telemetry/        # index(模式仲裁) + mock(模拟状态) + scs(共享内存映射)</span><br><span class="line">    input/            # index + windows(SendInput worker) + scs + mock + keyMap</span><br><span class="line">    commands/         # handler(动作语义) + queue(有界串行队列) + lightCycle + scsPlan</span><br><span class="line">    phase2/vjoy.js    # 二期占位：所有方法返回 UNSUPPORTED</span><br><span class="line">config/</span><br><span class="line">  server.default.json / keybinds.default.json</span><br><span class="line">web/                  # 前端源（原生 HTML/CSS/JS），build 时复制到 server/public/</span><br><span class="line">test/                 # 9 个 node:test 文件</span><br></pre></td></tr></table></figure>
+<p>设计上有一条硬性约定：<strong><code>server/index.js</code> 负责装配与销毁顺序</strong>（<code>hub.dispose()</code> → <code>input.dispose()</code> → <code>server.close()</code>，2 秒兜底 <code>process.exit(0)</code>），任何模块都不自己持有生命周期资源。退出时必须释放已按下的键，否则游戏里会出现"按着不放"的卡键现象。</p>
+<h2 id="三一份-12-个-action-的冻结契约"><a href="#三一份-12-个-action-的冻结契约" class="headerlink" title="三、一份 12 个 action 的冻结契约"></a>三、一份 12 个 action 的冻结契约</h2>
+<p><code>docs/API_CONTRACT.md</code> 把 v1 契约冻死了：消息类型只有 <code>hello</code> / <code>telemetry</code> / <code>command</code> / <code>command_ack</code> / <code>command_nack</code> / <code>error</code>，动作只有 12 个。</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>action</th>
+<th>值语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>灯语（6）</td>
+<td><code>lights.parking</code>、<code>lights.beamLow</code>、<code>lights.beamHigh</code>、<code>lights.blinkerLeft</code>、<code>lights.blinkerRight</code>、<code>lights.hazard</code></td>
+<td>必须带 boolean 目标状态</td>
+</tr>
+<tr>
+<td>雨刮（1）</td>
+<td><code>wipers.set</code></td>
+<td>只接受 <code>off</code> / <code>auto</code> / <code>1</code> / <code>2</code> / <code>3</code></td>
+</tr>
+<tr>
+<td>车辆（5）</td>
+<td><code>handbrake.toggle</code>、<code>diffLock.toggle</code>、<code>liftAxle.toggle</code>、<code>cruise.toggle</code>、<code>engine.toggle</code></td>
+<td><code>value</code> 省略或为 null</td>
+</tr>
+</tbody>
+</table>
+<p>握手必须发生在任何命令之前，否则回 <code>HELLO_REQUIRED</code>：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">{&quot;type&quot;:&quot;hello&quot;,&quot;role&quot;:&quot;web&quot;,&quot;version&quot;:&quot;1&quot;}</span><br><span class="line">{&quot;type&quot;:&quot;hello&quot;,&quot;ok&quot;:true,&quot;role&quot;:&quot;server&quot;,&quot;version&quot;:&quot;1&quot;,&quot;mock&quot;:true,&quot;telemetryHz&quot;:10,&quot;ts&quot;:1710000000000}</span><br></pre></td></tr></table></figure>
+<p>错误码也是枚举的一部分，不允许自由发挥：<code>HELLO_REQUIRED</code>、<code>INVALID_JSON</code>、<code>UNKNOWN_TYPE</code>、<code>UNKNOWN_ACTION</code>、<code>INVALID_VALUE</code>、<code>NOT_MAPPED</code>、<code>UNSUPPORTED</code>、<code>INJECT_FAILED</code>、<code>FORBIDDEN</code>、<code>UNSUPPORTED_VERSION</code>。</p>
+<p><strong>为什么"能回读"比"能写入"重要</strong>：雨刮在 SDK 里只有 boolean（开/关）可读，所以 live 模式下 <code>2</code>/<code>3</code>/<code>auto</code> 一律不伪造——mock 里五档齐全，是为了演示面板，而不是为了让 UI 看起来更丰富。</p>
+<h2 id="四遥测链路从共享内存到-10-hz-广播"><a href="#四遥测链路从共享内存到-10-hz-广播" class="headerlink" title="四、遥测链路：从共享内存到 10 Hz 广播"></a>四、遥测链路：从共享内存到 10 Hz 广播</h2>
+<ul>
+<li>速率：契约下限 ≥ 5 Hz，默认 10 Hz；广播间隔取 <code>max(16, round(1000 / hz))</code>，<code>telemetryHz</code> 被钳制在 5–30。</li>
+<li>单位换算是照着 SDK 一手文档做的，不靠猜：<code>speed</code>(m/s) × 3.6 → <code>speedKmh</code>；<code>fuel / fuelCapacity</code>（升）→ 百分比；<code>airPressure</code> 单位是 <strong>psi</strong>；挡位优先 <code>gearDashboard</code>，缺失才退回 <code>gear</code>。</li>
+<li>模式仲裁在 <code>telemetry/index.js</code>：插件不可用、共享内存没有 <code>sdkActive</code>、非 Windows、或 <code>TRUCKDECK_MOCK=1</code> 一律进 mock。<strong>"Node 包装得上"不算 live</strong>——游戏没开也算 mock，并把模式变化通过 hello ack 的 <code>mock</code> 字段回推给已连接的手机。</li>
+</ul>
+<h2 id="五按键注入为什么不用-node-直接调-win32"><a href="#五按键注入为什么不用-node-直接调-win32" class="headerlink" title="五、按键注入：为什么不用 Node 直接调 Win32"></a>五、按键注入：为什么不用 Node 直接调 Win32</h2>
+<p>Node 里没有原生 <code>SendInput</code>，<code>server/src/input/windows.js</code> 的做法是<strong>常驻一个 PowerShell worker 进程</strong>，Node 只负责发指令、收结果：</p>
+<ul>
+<li>只有白名单里的键码能被注入，白名单来自 <code>config.js</code> 的 <code>KEY_WHITELIST</code>；</li>
+<li>启动握手 <code>READY_TIMEOUT_MS = 15000</code>，单条指令 <code>DEFAULT_TIMEOUT_MS = 5000</code>，退出等待 <code>DISPOSE_WAIT_MS = 3000</code>；</li>
+<li><code>mock</code> 与 Linux 环境下<strong>不调用任何 OS 注入 API</strong>，这是代码路径级别的隔离，不是"应该不会触发"。</li>
+</ul>
+<p>灯语这里有个真实存在的坑：示廓灯和近光默认共用 <code>L</code> 键，键盘上没法直接"设置"到某个档，只能按循环步数推进。<code>commands/lightCycle.js</code> 把三态建模成 <code>off → parking → low</code>，步数用取模算：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// taps = (to - from + 3) % 3 —— 三态循环，负值自然回正</span><br><span class="line">const taps = (to - from + 3) % 3;</span><br></pre></td></tr></table></figure>
+<p>当共享内存路径可用时，走的是 SCS 的语义接口（<code>commands/scsPlan.js</code> + <code>scsControlOffsets.json</code> 里 276 个控件、<code>_totalBytes = 342</code> 的裸布局，<code>float=4 / bool=1</code>，无 header、无版本号），此时可以按"目标状态"精确写入，把按键脉冲的保压时间钳制在 <code>[20, 2000] ms</code>。</p>
+<h2 id="六命令队列与代数失效"><a href="#六命令队列与代数失效" class="headerlink" title="六、命令队列与&quot;代数&quot;失效"></a>六、命令队列与"代数"失效</h2>
+<p>手机点按和游戏状态回读之间天然异步，TruckDeck 用三件事把它收敛：</p>
+<ol>
+<li><strong>有界串行队列</strong>：<code>maxDepth = 32</code>、<code>ttlMs = 1500</code>。溢出与超时都以 <code>command_nack</code> 回给前端，而不是静默丢弃。</li>
+<li><strong>状态以后续遥测为准</strong>：<code>commands/handler.js</code> 的时序常量是 <code>TELEMETRY_WAIT_MS = 600</code> → 轮询比对（40 ms 一次）→ <code>TAP_SETTLE_MS = 80</code> / <code>SCS_SETTLE_MS = 120</code> → <code>SCS_CONFIRM_MS = 700</code>。也就是说，命令返回的 <code>ack</code> 只代表"注入动作完成"，真正的高亮状态等遥测回来再点亮。</li>
+<li><strong>模式代次</strong>：mock ↔ live 切换会推进一个 generation，旧模式下积压的命令直接作废。否则一次模式切换就可能让"演示时的点击"在真实游戏里落地成按键。</li>
+</ol>
+<p>限流同样在协议层：单连接 <code>msgRateLimit = 30</code> 条/秒，超出返回错误；单帧上限 <code>maxPayload = 8 KiB</code>；握手超时 <code>helloTimeoutMs = 10000</code>。</p>
+<h2 id="七安全只服务局域网的三道闸"><a href="#七安全只服务局域网的三道闸" class="headerlink" title="七、安全：只服务局域网的三道闸"></a>七、安全：只服务局域网的三道闸</h2>
+<p><code>server/src/lan.js</code> 做的是"这个请求到底是不是来自本机/私网"的判断：</p>
+<ul>
+<li><strong>来源必须查得通</strong>：请求 IP 必须是私网地址，Host 头必须与本机可达地址一致；</li>
+<li><strong>WebSocket Origin 校验</strong>：<code>Origin</code> 与 <code>Host</code> 不匹配（含 <code>null</code>、端口不符、外域）一律拒绝升级——这条是防"任意网页通过局域网 IP 跨站触发键盘注入"的关键；</li>
+<li><strong>路径白名单</strong>：只有 <code>/ws</code> 能升级，其他路径直接拒。</li>
+</ul>
+<p>这类校验很容易写成"看起来有、实际能绕"，所以验收里专门有一组拒绝路径测试：外域 Origin、<code>null</code> Origin、端口不符、非本机 Host、非 <code>/ws</code> 路径、未握手先发命令、非法 JSON、非法 value、超过 8 KiB 的单帧。</p>
+<h2 id="八验证26-项单测-18-项端到端"><a href="#八验证26-项单测-18-项端到端" class="headerlink" title="八、验证：26 项单测 + 18 项端到端"></a>八、验证：26 项单测 + 18 项端到端</h2>
+<ul>
+<li><code>npm test</code> 跑 <code>node --test test/*.test.js</code>，<strong>26/26</strong>，覆盖协议、队列、模式切换、灯光循环、键位解析、输入 worker、前端兜底与状态页，且<strong>不依赖构建产物</strong>（全新克隆 <code>npm ci &amp;&amp; npm test</code> 即可），测试端口固定 4011，不占 4000。</li>
+<li>端到端复验脚本 <code>docs/acceptance/verify-ws.cjs</code>，<strong>18/18</strong>：默认端口 4000 与非默认端口各跑一轮，12 类 action 共 22 次操作全部 ack 且与后续遥测一致，实测遥测 9.33 / 9.98 Hz。</li>
+<li>一期是"编排放 + 两个实现代理"完成的：契约由 Cursor Agent 实现并冻结，手机面板由 Cline Agent 实现，<code>docs/acceptance/</code> 里保留了截图、原始输出、派单回传和两个代理的运行日志（已扫描确认无凭据）。</li>
+</ul>
+<h2 id="九已知限制与二期"><a href="#九已知限制与二期" class="headerlink" title="九、已知限制与二期"></a>九、已知限制与二期</h2>
+<ul>
+<li><strong>Windows 实机 / 游戏尚未验收</strong>（<code>SendInput</code> 与共享内存需要真机），Linux 上可以跑全功能 mock 做演示；</li>
+<li>SDK 雨刮只有开关语义，live 不伪造多档与 AUTO；</li>
+<li>无 Service Worker，离线不可用；局域网 HTTP 下"添加到主屏幕/方向锁定"依浏览器而定；</li>
+<li>二期 vJoy 陀螺仪方向盘只留了接口与 <code>UNSUPPORTED</code> 占位，一期刻意不实现。</li>
+</ul>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
+<p>TruckDeck 值得记下来的不是"手机能控游戏"，而是三处克制：<strong>契约先冻结再实现</strong>、<strong>不能回读的状态就不假装能写</strong>、<strong>mock 与 live 在代码路径上彻底分开</strong>。前两条让前端不必猜后端的语义，第三条让"演示"永远不会变成"误注入"。</p>
+<p>仓库：<a href="https://github.com/sakuradairong/TruckDeck" target="_blank" rel="noopener">sakuradairong/TruckDeck</a>（MIT）</p>
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://sakuradairong.github.io/2026/09/24/truckdeck-telemetry-control/" data-id="7397b6150eaeafcf7b95bfcd" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+      
+<nav id="article-nav">
+  
+    <a href="/2026/09/24/tiez-clipboard-tauri/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2020/04/05/article-title/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">article title</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020–2026 雨季少年<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>雨季少年的博客</title>
+  <link href="https://sakuradairong.github.io/atom.xml" rel="self"/>
+  <link href="https://sakuradairong.github.io/"/>
+  <updated>2026-09-24T08:00:00.000Z</updated>
+  <id>https://sakuradairong.github.io/</id>
+  <author><name>雨季少年</name></author>
+  <generator uri="https://hexo.io/">Hexo</generator>
+  <entry>
+    <title>AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/astrbot-plugin-linuxsb/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/astrbot-plugin-linuxsb/</id>
+    <published>2026-09-24T08:00:00.000Z</published>
+    <updated>2026-09-24T08:00:00.000Z</updated>
+    <summary>一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。</summary>
+    <content type="html"><![CDATA[<p><a href="https://github.com/sakuradairong/astrbot-plugin-linuxsb" target="_blank" rel="noopener">AstrBot 的 linuxsb 插件</a>（v0.2.4，要求 AstrBot ≥ 4.5.7）功能一句话就能说完：检测聊天里的 <code>https://linux.sb/topic/&lt;数字&gt;</code> 链接，渲染成一张自适应卡片图。</p>
+<p>但把一句话的功能做成可用，要处理的是三件脏活：<strong>别人家的 HTML 会变</strong>、<strong>卡片高度必须跟着内容变</strong>、<strong>失败时不能假装成功</strong>。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/rime-context-filter-bigram/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/rime-context-filter-bigram/</id>
+    <published>2026-09-24T07:00:00.000Z</published>
+    <updated>2026-09-24T07:00:00.000Z</updated>
+    <summary>rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。</summary>
+    <content type="html"><![CDATA[<p>输入法里加"联想"很容易做坏——常见的失败模式是：把词频、后缀匹配、字符串拼接混在一起，最后得到一个经常乱序、还悄悄覆盖用户词库的过滤器。</p>
+<p><a href="https://github.com/sakuradairong/rime-lua-scripts" target="_blank" rel="noopener">rime_context_filter</a> 的定位很窄，也很清楚：<strong>只做词级二元模型（bigram）</strong>，只按相邻两个有效词的搭配统计来微调候选顺序，其余交给 Rime 原生的用户词典（造词、调频、删词都不越权）。</p>]]></content>
+  </entry>
+  <entry>
+    <title>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/keystats-3d-heatmap/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/keystats-3d-heatmap/</id>
+    <published>2026-09-24T06:00:00.000Z</published>
+    <updated>2026-09-24T06:00:00.000Z</updated>
+    <summary>把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。</summary>
+    <content type="html"><![CDATA[<p><a href="https://github.com/sakuradairong/keystats-heatmap" target="_blank" rel="noopener">KeyStats 键盘热力图</a> 的目标很朴素：把 KeyStats 导出的按键统计 JSON，渲染成一张<strong>可交互的三维键盘热力图</strong>——颜色深浅和键帽高度同时表示频次。它只有两三千行代码，但每一层都藏着被低估的细节。</p>]]></content>
+  </entry>
+  <entry>
+    <title>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/</id>
+    <published>2026-09-24T05:00:00.000Z</published>
+    <updated>2026-09-24T05:00:00.000Z</updated>
+    <summary>smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。</summary>
+    <content type="html"><![CDATA[<p><a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">smartstrm-cleanroom</a> 是一个用 Go 1.23 从零实现的 STRM 生成 / 任务自动化 / 安全播放服务，AGPL-3.0 发布。</p>
+<p>它最有意思的地方不是"又做了一个 STRM 工具"，而是它把<strong>"什么算完成"这件事写成了规则</strong>：功能矩阵里 <code>🟡</code> 部分实现与 <code>⬜</code> 未实现都不许计入完成，每个 <code>✅</code> 必须附上文件、测试、真实协议或容器运行证据。</p>]]></content>
+  </entry>
+  <entry>
+    <title>BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/bilidesk-tauri-libmpv/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/bilidesk-tauri-libmpv/</id>
+    <published>2026-09-24T03:00:00.000Z</published>
+    <updated>2026-09-24T03:00:00.000Z</updated>
+    <summary>BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。</summary>
+    <content type="html"><![CDATA[<p>用"网页壳"做 B 站客户端很省事，但一旦要内嵌播放器、要自己管弹幕、要把登录态安全地落在本地，就必须把关键逻辑搬到原生侧。<a href="https://github.com/sakuradairong/bilidesk" target="_blank" rel="noopener">BiliDesk</a> 的选择是 <strong>Tauri 2 + React + libmpv</strong>：界面用 Web 技术，签名、会话、播放器控制、弹幕转换全部在 Rust。</p>]]></content>
+  </entry>
+  <entry>
+    <title>TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/tiez-clipboard-tauri/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/tiez-clipboard-tauri/</id>
+    <published>2026-09-24T02:00:00.000Z</published>
+    <updated>2026-09-24T02:00:00.000Z</updated>
+    <summary>TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。</summary>
+    <content type="html"><![CDATA[<p><a href="https://github.com/sakuradairong/tiez-clipboard" target="_blank" rel="noopener">TieZ</a> 的代码量在个人项目里算偏大的：<code>src-tauri/src</code> 下约 <strong>35,800 行 Rust</strong>，前端 <strong>114 个 TS/TSX 文件</strong>。大不是重点，重点在于它把"剪贴板采集""本地仓储""主题渲染""跨设备传输"这几件事分得比较清楚，尤其是把<strong>剪贴板中继</strong>（Clipboard Relay）和<strong>云历史同步</strong>做成了两条互不干扰的通道。这在实际使用里很关键：临时把一段文本丢到另一台机器，不应该意味着把整份历史记录上传。</p>]]></content>
+  </entry>
+  <entry>
+    <title>TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</title>
+    <link href="https://sakuradairong.github.io/2026/09/24/truckdeck-telemetry-control/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2026/09/24/truckdeck-telemetry-control/</id>
+    <published>2026-09-24T01:00:00.000Z</published>
+    <updated>2026-09-24T01:00:00.000Z</updated>
+    <summary>TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。</summary>
+    <content type="html"><![CDATA[<p>把游戏遥测搬到第二块屏幕上，通常意味着再写一个桌面客户端。而 <a href="https://github.com/sakuradairong/TruckDeck" target="_blank" rel="noopener">TruckDeck</a> 换了个思路：<strong>PC 上只跑一个 Node 服务，手机浏览器打开就是横屏中控</strong>。所有状态以"后续遥测回显"为准，而不是以"命令已发送"为准——这是整个项目最核心的一条约束。</p>]]></content>
+  </entry>
+  <entry>
+    <title>article title</title>
+    <link href="https://sakuradairong.github.io/2020/04/05/article-title/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2020/04/05/article-title/</id>
+    <published>2020-04-04T22:18:52.000Z</published>
+    <updated>2020-04-04T22:18:52.000Z</updated>
+    <summary>article title</summary>
+    <content type="html"><![CDATA[]]></content>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <link href="https://sakuradairong.github.io/2020/04/05/hello-world/" rel="alternate"/>
+    <id>https://sakuradairong.github.io/2020/04/05/hello-world/</id>
+    <published>2020-04-04T21:37:26.685Z</published>
+    <updated>2020-04-04T21:37:26.685Z</updated>
+    <summary>Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick</summary>
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>]]></content>
+  </entry>
+</feed>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  <title>BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS | 雨季少年的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/bilidesk-tauri-libmpv/index.html">
+<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:description" content="BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。">
+<meta property="article:published_time" content="2026-09-24T03:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-24T03:00:00.000Z">
+<meta property="article:author" content="雨季少年">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">雨季少年的博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-bilidesk-tauri-libmpv" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/09/24/bilidesk-tauri-libmpv/" class="article-date">
+  <time datetime="2026-09-24T03:00:00.000Z" itemprop="datePublished">2026-09-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+          
+    <h1 class="article-title" itemprop="name">
+      BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <p>用"网页壳"做 B 站客户端很省事，但一旦要内嵌播放器、要自己管弹幕、要把登录态安全地落在本地，就必须把关键逻辑搬到原生侧。<a href="https://github.com/sakuradairong/bilidesk" target="_blank" rel="noopener">BiliDesk</a> 的选择是 <strong>Tauri 2 + React + libmpv</strong>：界面用 Web 技术，签名、会话、播放器控制、弹幕转换全部在 Rust。</p>
+<h2 id="一先解决播放器怎么装"><a href="#一先解决播放器怎么装" class="headerlink" title="一、先解决&quot;播放器怎么装&quot;"></a>一、先解决"播放器怎么装"</h2>
+<p>桌面端打包最容易被忽略的是<strong>外部二进制依赖</strong>。BiliDesk 用 libmpv，并把获取过程写成脚本 <code>scripts/fetch-mpv.sh</code> / <code>.ps1</code>：</p>
+<ul>
+<li>固定上游与版本：<code>zhongfly/mpv-winbuild</code> tag <code>2026-08-21-49418246f3</code>，资产名 <code>mpv-dev-lgpl-x86_64-20260821-git-49418246f3.7z</code>；</li>
+<li><strong>校验 SHA-256</strong>（<code>317dfd9e…0510e0</code>，用 <code>sha256sum</code> / <code>shasum</code> 校验）后才解压；</li>
+<li>想换版本必须同时提供 <code>MPV_RELEASE</code> / <code>MPV_ASSET</code> / <code>MPV_SHA256</code> 三个环境变量，避免"只改了 tag 导致校验失效"；</li>
+<li>已经存在时跳过，除非 <code>MPV_FORCE=1</code>。</li>
+</ul>
+<p>这条规则的意义在于可复现：CI 和本地拿到的是同一个二进制，<code>libmpv_search_starts_in_vendor</code> 这类测试才有意义。</p>
+<h2 id="二wbi-签名把能跑变成可验证"><a href="#二wbi-签名把能跑变成可验证" class="headerlink" title="二、WBI 签名：把&quot;能跑&quot;变成&quot;可验证&quot;"></a>二、WBI 签名：把"能跑"变成"可验证"</h2>
+<p>B 站的 Web 接口对部分端点要求 WBI 签名（<code>w_rid</code>）。这类算法的常见问题是：写完只能靠"接口没报错"来验证。BiliDesk 的做法是<strong>把官方公布的示例作为单元测试</strong>，并且把"去掉非法字符"这一步单独覆盖——签名是纯函数，纯函数就该有断言。</p>
+<p>配套的请求侧约束：</p>
+<ul>
+<li>分区/排行等接口按"官方 PC 端契约"构造 URL，并对响应做校验，把鉴权失败、风控、限流等业务码原样保留（而不是统一吞成"请求失败"）；</li>
+<li><code>logout</code> 会清掉 <code>SESSDATA</code>、<code>bili_jct</code>、<code>DedeUserID</code>、<code>DedeUserID__ckMd5</code>、<code>sid</code> 这几项，不留下半套凭据。</li>
+</ul>
+<h2 id="三会话保护魔法头-dpapi"><a href="#三会话保护魔法头-dpapi" class="headerlink" title="三、会话保护：魔法头 + DPAPI"></a>三、会话保护：魔法头 + DPAPI</h2>
+<p><code>session.json</code> 不是明文 cookie 转储：</p>
+<ul>
+<li>文件以 <code>BILIDESK_SESSION_V1\0</code> 作为魔法头；</li>
+<li>内容用 Windows DPAPI（<code>CryptProtectData</code>，<code>CRYPTPROTECT_UI_FORBIDDEN</code>）加密，绑定当前用户；</li>
+<li>首次读取到旧的明文文件时自动迁移成加密格式——<strong>迁移而不是报错</strong>，这决定老用户升级后的体验；</li>
+<li><code>PRIVACY.md</code> 把边界写清楚了：无遥测、无广告、无云同步；DPAPI 只防"文件被拷走"，不防同用户下的恶意程序，也不防运行时内存读取；数据在 <code>%APPDATA%\com.bilidesk.desktop</code>，卸载后可能保留。</li>
+</ul>
+<p>本地数据用 SQLite（<code>bilidesk.db</code>）：<code>history</code>、<code>settings</code>、<code>play_progress</code>、<code>schema_migrations</code>，历史迁移版本 <code>HISTORY_MIGRATION_VERSION = 1</code>。老的 <code>history.json</code> 会被导入并改名为 <code>history.json.migrated</code>——<strong>保留原件</strong>，这在数据迁移里是低成本高价值的习惯。</p>
+<h2 id="四封面与图片为什么不用-ltimg-srchttpsgt"><a href="#四封面与图片为什么不用-ltimg-srchttpsgt" class="headerlink" title="四、封面与图片：为什么不用 &amp;lt;img src=&quot;https://...&quot;&amp;gt;"></a>四、封面与图片：为什么不用 <code>&lt;img src="https://..."&gt;</code></h2>
+<p>直接让 WebView 加载 B 站 CDN 图片，等于把用户的 Referer/IP 直接暴露给第三方，也会让 CSP 变得很松。BiliDesk 改走自定义协议：</p>
+<ul>
+<li>Rust 侧注册 <code>biliimg</code> 协议作为封面代理，<code>media.rs</code> 里维护<strong>主机白名单</strong>（只允许 B 站系 CDN，测试 <code>allows_bili_cdns</code> / <code>rejects_other_hosts</code>），并对响应大小设 <strong>8 MiB 上限</strong>（超出报"封面过大"）；</li>
+<li>前端按平台拼 URL：Windows WebView2 下用 <code>http://biliimg.localhost/img?u=…</code>，其他情况用 <code>biliimg://localhost/…</code>；</li>
+<li>CSP 因此可以收紧到 <code>img-src</code> 只允许该主机、<code>connect-src</code> 只留 <code>ipc:</code>、<code>object-src 'none'</code>、<code>frame-ancestors 'none'</code>。</li>
+</ul>
+<p>"所有远程图片都经过自己的白名单代理"是一条很好复用的模式：可缓存、可限流、可限大小、可审计。</p>
+<h2 id="五弹幕-ass-mpv"><a href="#五弹幕-ass-mpv" class="headerlink" title="五、弹幕 → ASS → mpv"></a>五、弹幕 → ASS → mpv</h2>
+<p>弹幕不是叠加在 WebView 上，而是转成 ASS 字幕交给 mpv 渲染（<code>bili/danmaku.rs</code>）：</p>
+<ul>
+<li>默认字体 48、行数 12、不透明度 1.0、显示区域 1.0、加粗；行高按 <code>font + 8</code>；显示区高度按 <code>play_y * display_area</code> 折算；</li>
+<li>宽度估算用 <code>字符数 × font × 0.7</code>，用来决定滚动轨道的碰撞与占用；</li>
+<li>生成 <code>Scroll</code> / <code>Top</code> / <code>Bottom</code> 三种 ASS 样式，字体族 <code>Microsoft YaHei</code>；不透明度同时映射到 ASS 的 alpha 值<strong>和</strong>阴影距离（<code>(1-opacity)*255</code>、<code>*96</code>），保证半透明时仍然有可读性。</li>
+</ul>
+<p>弹幕偏好（字号 28–72、行数 4–20、不透明度 0.1–1.0、显示区域 0.25–1.0）在<strong>写入和读取两侧都做钳制</strong>（<code>player_set_danmaku_prefs</code> 与加载路径都校验）。只在前端限制等于没限制——配置文件是可以手改的。</p>
+<h2 id="六分区发现与状态"><a href="#六分区发现与状态" class="headerlink" title="六、分区/发现与状态"></a>六、分区/发现与状态</h2>
+<ul>
+<li>分区 tab 的合并是显式设计过的：<code>?tab=ranking</code> 与 <code>?tab=region</code> 合并，OGV 分区 id <code>13/167/168</code> 回落到"动画"，<code>rid=0</code> 表示全站，不做分页；</li>
+<li>播放进度、音量、倍速、主题、弹幕开关等落到 settings，默认值在 Rust 侧集中定义（theme=light、danmaku=true、font=42、rows=10、volume=80、speed=1）；</li>
+<li>播放器命令做了<strong>作用域取消</strong>：切换视频时旧的加载作用域会被取消，避免"上一个视频的响应把新视频的状态覆盖"。</li>
+</ul>
+<h2 id="七验证"><a href="#七验证" class="headerlink" title="七、验证"></a>七、验证</h2>
+<ul>
+<li>前端：11 个 vitest 文件（<code>media</code>、<code>errors</code>、<code>regions</code>、<code>region-feed</code>、<code>hotkeys</code>、<code>discover-tabs</code>、<code>watch</code>、<code>wheel-navigation</code>、<code>version</code>、<code>releaseVersions</code>…），例如 <code>media.test.ts</code> 断言按 UA 选择 URL 方案、空值直接透传；</li>
+<li>Rust：13 个模块内 <code>#[cfg(test)]</code> 约 23 个测试，覆盖 WBI 示例与非法字符、弹幕密度/区域/透明度、媒体白名单、分区排行 URL 与响应校验、历史往返与损坏 JSON 再导入、播放器作用域取消、libmpv 定位；</li>
+<li>CI：<code>rust-audit</code>（rustsec audit）之外，<code>quality</code> job 在 windows-latest 上跑"下载固定 libmpv → <code>check:release</code> → build → test → <code>npm audit --audit-level=high</code> → <code>cargo fmt --check</code> → <code>clippy -D warnings --all-targets --all-features</code> → <code>cargo test --locked</code>"；tag 触发的安装包 job 支持可选证书签名。</li>
+</ul>
+<h2 id="八限制"><a href="#八限制" class="headerlink" title="八、限制"></a>八、限制</h2>
+<p>不做直播流、不下载缓存、不破解会员、不做区域绕过；上游 Web 接口变化可能影响功能；没有配置证书时安装包未签名；设计文档（<code>docs/superpowers/specs/</code>）明确了"UI 不直接请求 B 站域名"的边界，但也承认区域/发现页的完整契约仍依赖第三方接口的稳定性。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
+<p>这类"第三方客户端"项目的技术含量不在界面，而在三件事：<strong>外部二进制可复现（版本 + 哈希 + 显式覆盖变量）</strong>、<strong>凭据用系统能力保护并显式写出防护边界</strong>、<strong>把算法（WBI）与渲染（弹幕 ASS）变成可断言的纯逻辑</strong>。</p>
+<p>仓库：<a href="https://github.com/sakuradairong/bilidesk" target="_blank" rel="noopener">sakuradairong/bilidesk</a></p>
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://sakuradairong.github.io/2026/09/24/bilidesk-tauri-libmpv/" data-id="8fea9c591c6d5b60dde36a6c" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+      
+<nav id="article-nav">
+  
+    <a href="/2026/09/24/smartstrm-cleanroom-go/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2026/09/24/tiez-clipboard-tauri/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020–2026 雨季少年<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

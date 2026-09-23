@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  <title>TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继 | 雨季少年的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/tiez-clipboard-tauri/index.html">
+<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:description" content="TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。">
+<meta property="article:published_time" content="2026-09-24T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-24T02:00:00.000Z">
+<meta property="article:author" content="雨季少年">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">雨季少年的博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-tiez-clipboard-tauri" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2026/09/24/tiez-clipboard-tauri/" class="article-date">
+  <time datetime="2026-09-24T02:00:00.000Z" itemprop="datePublished">2026-09-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+          
+    <h1 class="article-title" itemprop="name">
+      TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      <p><a href="https://github.com/sakuradairong/tiez-clipboard" target="_blank" rel="noopener">TieZ</a> 的代码量在个人项目里算偏大的：<code>src-tauri/src</code> 下约 <strong>35,800 行 Rust</strong>，前端 <strong>114 个 TS/TSX 文件</strong>。大不是重点，重点在于它把"剪贴板采集""本地仓储""主题渲染""跨设备传输"这几件事分得比较清楚，尤其是把<strong>剪贴板中继</strong>（Clipboard Relay）和<strong>云历史同步</strong>做成了两条互不干扰的通道。这在实际使用里很关键：临时把一段文本丢到另一台机器，不应该意味着把整份历史记录上传。</p>
+<h2 id="一分层与模块地图"><a href="#一分层与模块地图" class="headerlink" title="一、分层与模块地图"></a>一、分层与模块地图</h2>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">src-tauri/src/</span><br><span class="line">  app/            # 生命周期：setup、hooks、commands（settings_cmd / system_cmd / ui_cmd）</span><br><span class="line">  services/</span><br><span class="line">    clipboard/            # mod.rs(1731) 采集与写回、pipeline.rs(616) 处理阶段</span><br><span class="line">    clipboard_relay.rs    # 1368 行：加密中继</span><br><span class="line">    cloud_sync.rs         # 5268 行：WebDAV 历史同步</span><br><span class="line">    encryption_queue.rs   # 加密任务队列</span><br><span class="line">    mqtt_sub.rs           # MQTT 连接</span><br><span class="line">    file_transfer/        # 局域网文件/文本传输（含 web_ui）</span><br><span class="line">    sensitive_align.rs    # 敏感内容对齐/掩码</span><br><span class="line">  infrastructure/</span><br><span class="line">    repository/           # clipboard_repo.rs(2271)、tag_repo、migrations.rs(855) —— SQLite</span><br><span class="line">    windows_api/          # win_clipboard.rs(1061)、drag_drop、apps</span><br></pre></td></tr></table></figure>
+<p>技术栈上几个刻意的选择：</p>
+<table>
+<thead>
+<tr>
+<th>关注点</th>
+<th>选型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>剪贴板读写</td>
+<td><code>arboard</code>（启用 <code>wayland-data-control</code>）+ <code>clipboard-rs</code>，兼顾 X11/XWayland 与实现 data-control 的 Wayland 合成器</td>
+</tr>
+<tr>
+<td>本地存储</td>
+<td><code>rusqlite</code>（bundled）+ 自管迁移，不依赖外部服务</td>
+</tr>
+<tr>
+<td>凭据存储</td>
+<td><code>keyring 4.1.5</code>（Windows Credential Manager / macOS Keychain / Linux Secret Service）</td>
+</tr>
+<tr>
+<td>加密</td>
+<td><code>chacha20poly1305</code>（XChaCha20-Poly1305）</td>
+</tr>
+<tr>
+<td>局域网传输</td>
+<td><code>axum 0.8.8</code>（multipart/ws）</td>
+</tr>
+<tr>
+<td>MQTT</td>
+<td><code>rumqttc</code> + <code>rustls</code></td>
+</tr>
+<tr>
+<td>二维码识别</td>
+<td><code>rqrr</code>；图片处理 <code>image</code></td>
+</tr>
+</tbody>
+</table>
+<p>发布构型也做了取舍：<code>lto = true</code>、<code>codegen-units = 1</code>、<code>opt-level = "s"</code>、<code>strip</code>、<code>panic = "abort"</code> —— 牺牲编译时间换包体与启动表现，同时用 <code>portable</code> / <code>devtools</code> 两个 feature 区分便携模式与调试模式。</p>
+<p><strong>窗口是"贴边小面板"而不是普通窗口</strong>：主窗口 352×380（最小 250×300），<code>transparent</code>、<code>decorations: false</code>、<code>skipTaskbar: true</code>、<code>dragDropEnabled: false</code>，配合 <code>window-vibrancy</code> 做 mica/acrylic 背景。CSP 写得比较收敛：<code>default-src 'self'</code>，脚本/样式只额外放开 <code>'unsafe-inline'</code>，<code>connect-src</code> 限定 <code>'self' ws: http: https:</code>；资源协议只允许 <code>$HOME/**</code>、<code>$APPDATA/**</code>、<code>$APPLOCALDATA/**</code>、<code>$PROFILE/**</code>；<code>opener:allow-open-url</code> 只允许打开 <code>https://github.com/**</code>。</p>
+<h2 id="二主题系统令牌-单一注册表"><a href="#二主题系统令牌-单一注册表" class="headerlink" title="二、主题系统：令牌 + 单一注册表"></a>二、主题系统：令牌 + 单一注册表</h2>
+<p><code>docs/THEME-SYSTEM.md</code> 把主题拆成两层，规则是"<strong>共享 CSS 只负责结构与中性默认值，每个主题文件拥有自己的视觉语言</strong>"：</p>
+<ul>
+<li><strong>注册表唯一</strong>：<code>src/shared/config/themes.ts</code> 是 id、多语言标签（zh/en/tw）和功能开关的唯一来源；</li>
+<li><strong>自动装载</strong>：<code>src/styles/themes/load.ts</code> 自动 import <code>themes/*.css</code>，所以"纯 CSS 主题"新增时不需要改任何加载器代码；</li>
+<li><strong>运行时归一</strong>：未知主题 id 回落到 <code>DEFAULT_THEME</code>，并在 <code>html</code> 与 <code>body</code> 上同时挂 <code>theme-&lt;id&gt;</code> 类，主窗口与 compact-preview 窗口用同一个 id；</li>
+<li><strong>令牌规模</strong>：约 100+ 个语义变量，按 <code>--shell-*</code>、<code>--toolbar-*</code>、<code>--title-*</code>、<code>--input-*</code>、<code>--button-*</code>、<code>--card-*</code>、<code>--panel-*</code>、<code>--switch-*</code>、<code>--segmented-*</code>、<code>--modal-*</code>、<code>--tags-*</code>、<code>--menu-*</code>、<code>--queue-*</code> 分组；</li>
+<li><strong>原生层单独出口</strong>：mica/acrylic 这类需要调系统 API 的效果只走 <code>app/commands/ui_cmd.rs</code> 的 <code>set_theme</code>，不把平台分支渗透进前端。</li>
+</ul>
+<p>内置主题是 retro / mica / acrylic / sticky-note。文档里也诚实列了"主题债"：<code>Announcement.css</code>、<code>compact-mode.css</code>、<code>emoji.css</code>、<code>file-transfer.css</code> 还没完全令牌化。</p>
+<h2 id="三中继relay把发一段文本和同步全量历史分开"><a href="#三中继relay把发一段文本和同步全量历史分开" class="headerlink" title="三、中继（Relay）：把&quot;发一段文本&quot;和&quot;同步全量历史&quot;分开"></a>三、中继（Relay）：把"发一段文本"和"同步全量历史"分开</h2>
+<p><code>docs/CLIPBOARD-RELAY.md</code> 定义得很清楚：中继是<strong>显式的一次性传输</strong>，与云历史同步完全独立。</p>
+<p>数据路径与语义：</p>
+<ul>
+<li>收发双方配置同一 WebDAV 账号 + 同一个 relay 共享密钥，各自绑定 <code>Send clipboard relay</code> / <code>Fetch clipboard relay</code> 两个全局快捷键（<strong>默认为空，不会偷偷占用按键</strong>）；</li>
+<li>Send 只上传当前 <code>text/plain</code> 剪贴板值：不上传历史、标签、置顶状态、使用元数据、设置或本地路径；</li>
+<li>Fetch 只把<strong>最新一条</strong>合格消息写回系统剪贴板，并标记这次写入是"应用发起"，因此不会进入本地历史；</li>
+<li>消息默认 10 分钟过期，协议校验收到的 TTL 不允许超过 24 小时，也会拒绝过大的时钟偏移；</li>
+<li>远端队列上限 2000 个对象，过期与超量对象在正常收发流程中做尽力而为的清理。</li>
+</ul>
+<p>密码学与凭据：</p>
+<ul>
+<li>流量走独立的 <code>&lt;base-path&gt;/relay/v1</code> WebDAV 命名空间；</li>
+<li><strong>32 字节共享密钥 + XChaCha20-Poly1305</strong> 加密消息正文，附加认证数据绑定消息 ID、发送者、目标列表、媒体类型、时间戳、算法标识和 WebDAV 文件名——也就是说，元数据不能在不被发现的情况下被改名或重放；</li>
+<li>ACK 文件同样加密并认证，未认证的 ACK 直接拒绝；</li>
+<li>信封里<strong>没有明文的正文哈希或其他指纹</strong>，避免"看不到内容但能比对内容"的泄漏；</li>
+<li>共享密钥存进操作系统凭据库，不通过通用设置 API 返回，也永不作为普通设置项落盘；生成密钥时只在原生写入成功后显示一次；<strong>便携模式下直接禁用中继，而不是退化成明文存 key</strong>；</li>
+<li>因为应用的端到端加密保护不了 WebDAV 凭据、对象路径和流量特征，所以中继强制要求 <code>https://</code> 的 WebDAV 地址。</li>
+</ul>
+<p>投递语义写得很克制：<strong>从本地视角是 at-most-once</strong>。如果剪贴板写入成功但 ACK 上传失败，收据停在 <code>copied_pending_ack</code>，之后的 fetch 只重试 ACK、不会再次覆盖剪贴板；损坏、被篡改、密钥不符或未认证的对象会报错，而不是静默显示成"空收件箱"。Linux 上需要可用的用户态 D-Bus Secret Service（GNOME Keyring / KWallet），否则<strong>中继 fail closed</strong>，其他功能不受影响。</p>
+<h2 id="四数据与迁移"><a href="#四数据与迁移" class="headerlink" title="四、数据与迁移"></a>四、数据与迁移</h2>
+<ul>
+<li>SQLite 仓储由 <code>database.rs</code> 与 <code>infrastructure/repository/migrations.rs</code>（855 行）共同管理，单是剪贴板仓储 <code>clipboard_repo.rs</code> 就有 2271 行，标签等实体拆成独立 repo，避免堆成一个巨型 DAO；</li>
+<li>迁移是版本化的（含 schema 版本与一次性迁移逻辑），采集侧有 <code>pipeline.rs</code> 明确划分"读取 → 规范化 → 去重/掩码 → 入库 → 事件分发"的阶段；</li>
+<li><code>sensitive_align.rs</code> + 设置项负责敏感预览的自动掩码——<strong>在本地就掩掉</strong>，而不是依赖 UI 层不显示。</li>
+</ul>
+<h2 id="五工程化程度"><a href="#五工程化程度" class="headerlink" title="五、工程化程度"></a>五、工程化程度</h2>
+<ul>
+<li>主校验命令：<code>npm test</code>（前端）、<code>npm run build</code>、<code>npm run test:rust</code>；</li>
+<li>发布构型 + CI 组合（Rust 静态检查、clippy、测试、前端构建）意味着"能跑"不是验收标准，"能复现地跑"才是；</li>
+<li>上游为社区 fork，README 明确要求发布二进制前先审查旧更新器端点、签名凭据与分发基础设施——这类清单化的提醒比"自行注意安全"有用得多。</li>
+</ul>
+<h2 id="六限制"><a href="#六限制" class="headerlink" title="六、限制"></a>六、限制</h2>
+<ul>
+<li>自动粘贴在 Linux 依赖 <code>xdotool</code>(X11) / <code>wtype</code>(Wayland)，两者都不可用时只把内容留在剪贴板（不假装粘贴成功）；</li>
+<li>macOS 需要辅助功能与剪贴板权限；当前构建未做 Apple 签名/公证，首次启动需手动放行；</li>
+<li>系统 OCR 依赖 Windows Runtime，仅在 Windows 可用（二维码识别是跨平台的）；</li>
+<li>中继仅支持 UTF-8 文本，单条上限 64 KiB。</li>
+</ul>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
+<p>TieZ 最值得借鉴的两点：<strong>主题是带注册表的数据层，而不是散落的样式覆盖</strong>；<strong>临时传输与历史同步必须是两条通道</strong>，并且这条临时通道从密钥存储、加密模式到失败策略都按"最坏情况可见"来设计——包括明文指纹都不留。</p>
+<p>仓库：<a href="https://github.com/sakuradairong/tiez-clipboard" target="_blank" rel="noopener">sakuradairong/tiez-clipboard</a>（GPL-3.0，社区维护 fork）</p>
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://sakuradairong.github.io/2026/09/24/tiez-clipboard-tauri/" data-id="9583f9dad943724ce8c4aa9f" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+      
+<nav id="article-nav">
+  
+    <a href="/2026/09/24/bilidesk-tauri-libmpv/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2026/09/24/truckdeck-telemetry-control/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">April 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
+          </li>
+        
+          <li>
+            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020–2026 雨季少年<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
