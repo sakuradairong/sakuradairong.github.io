@@ -6,7 +6,7 @@
   <updated>2026-09-24T08:00:00.000Z</updated>
   <id>https://sakuradairong.github.io/</id>
   <author><name>雨季少年</name></author>
-  <generator uri="https://hexo.io/">Hexo</generator>
+  <generator>Rain Notes / build_site.py</generator>
   <entry>
     <title>AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</title>
     <link href="https://sakuradairong.github.io/2026/09/24/astrbot-plugin-linuxsb/" rel="alternate"/>

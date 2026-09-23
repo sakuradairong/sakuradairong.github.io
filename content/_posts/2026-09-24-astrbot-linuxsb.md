@@ -1,6 +1,8 @@
 ---
 title: AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染
 date: 2026-09-24 16:00
+category: 插件与扩展
+tags: Python, AstrBot, HTML
 slug: astrbot-plugin-linuxsb
 description: 一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及"宁可报错也不发空卡片"的失败策略上。
 ---

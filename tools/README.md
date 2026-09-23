@@ -1,33 +1,32 @@
-# tools/ — 站点构建
+# 静态博客构建
 
-`sakuradairong.github.io` 目前的仓库里只有 Hexo 生成的产物（原 Hexo 源仓库 `hexo-blog-fly` 已删除），
-因此这里补了一份可复现的构建脚本：**用 Markdown 写文章，生成与 Hexo 4.2.0 + landscape 主题一致的静态页面**。
+本站使用 Python + Markdown 生成可直接部署至 GitHub Pages 的静态站点。原 Hexo 源仓库已删除，目前 `content/_posts/` 是文章来源，`tools/build_site.py` 是唯一页面生成入口。
 
-## 目录
+## 目录与设计
 
-```
-content/_posts/*.md    文章源（Markdown + front matter）
-content/legacy/*.json  非 Markdown 来源的历史文章（可选，当前为空）
-tools/build_site.py    生成器：文章页 / 首页 / 归档页 / atom.xml / favicon.png
-```
+- `content/_posts/*.md`：文章正文及 front matter。
+- `content/legacy/*.json`：可选历史文章，当前为空。
+- `tools/build_site.py`：生成首页、文章页、年/月归档、Atom feed 和图标。
+- `css/style.css`：响应式布局、色彩、卡片和阅读排版。
+- `js/script.js`：主题筛选、本地搜索、复制文章链接。
 
-> 2020 年的两篇占位文章（`article-title`、`hello-world`）已删除，对应的 `content/legacy/*.json`
-> 与生成页面一并移除。若今后还需要保留某篇无法转成 Markdown 的旧文章，可以按原格式放回该目录，
-> 构建时会原样输出。
+界面采用暖白与墨绿配色，首页展示开发手记卡片，文章页提供桌面目录。无前端构建步骤，无外部字体或 JavaScript 依赖。禁用 JavaScript 时仍可阅读全部文章和归档，交互控件自动隐藏。
 
-## 写一篇新文章
+## 新增文章
 
-在 `content/_posts/` 新建 `YYYY-MM-DD-slug.md`：
+在 `content/_posts/` 下创建 `YYYY-MM-DD-slug.md`：
 
 ```markdown
 ---
 title: 文章标题
 date: 2026-09-24 09:00
+category: 后端工程
+tags: Go, 工程实践
 slug: post-url-slug
-description: 用于 <meta name="description"> 与 og:description 的摘要
+description: 文章摘要，用于首页卡片、搜索和页面元数据。
 ---
 
-开头这一两段会作为首页摘要（`<!-- more -->` 之前的内容）。
+开头介绍……
 
 <!-- more -->
 
@@ -36,26 +35,28 @@ description: 用于 <meta name="description"> 与 og:description 的摘要
 正文……
 ```
 
-- `slug` 决定 URL：`/YYYY/MM/DD/<slug>/`；
-- 首页只展示 `<!-- more -->` 之前的内容，并附 "Read more"；
-- 代码块用围栏语法并标注语言，会渲染成主题自带的 `figure.highlight`（带行号）；
-- 外链自动加 `target="_blank" rel="noopener"`。
+- `slug` 决定 `/YYYY/MM/DD/<slug>/` URL，已有 URL 保持兼容。
+- `category` 默认是「工程手记」，首页自动生成分类按钮。
+- `tags` 使用英文逗号分隔；搜索匹配标题、摘要和标签，以空格分隔的多个关键词取交集。
+- `description` 用于首页摘要；未填写时，卡片从文章文本中截取。
+- `<!-- more -->` 之前的正文用于 feed 摘要。
+- 阅读时长按正文约 500 字符/分钟估算。
+- 二、三级标题自动生成文章目录；围栏代码块包含行号。
+- 外链自动添加 `target="_blank" rel="noopener"`。
 
-## 构建与校验
+## 构建、校验和预览
+
+依赖 Python 3.10+ 和 `markdown` 包：
 
 ```bash
-python3 tools/build_site.py          # 生成整站并自检
-python3 tools/build_site.py --check  # 只做校验（标签闭合、内链/资源、feed 条目）
+pip install markdown
+python3 tools/build_site.py
+python3 tools/build_site.py --check
+python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
-依赖：Python 3.10+ 与 `markdown` 包（`pip install markdown`）。
+浏览器打开 `http://127.0.0.1:4173`。支持 `/` 快捷键搜索，Esc 关闭搜索。复制链接在 HTTPS 或 localhost 可用，并提供失败反馈。
 
-校验内容：HTML 标签闭合、所有站内链接与资源可解析、每篇文章在首页与归档中可达、`atom.xml` 覆盖最新 20 篇。
+构建会清理失去来源的文章页与归档页。请修改文章源和生成器后重新构建，避免直接编辑生成的 HTML。
 
-## 说明
-
-- 归档页会自动按 `年 / 月` 目录生成（`/archives/2026/09/`）；
-- 侧栏 "Archives" 与 "Recent Posts" 由脚本统一渲染，新增文章后无需手工改动；
-- **删除文章只需要删掉 `content/_posts/` 下对应的 Markdown**：构建会自动清理失去来源的文章页与归档页，并回收空目录；
-- 生成器同时修正了 2020 年产物里的两个问题：`og:url` 中的多余 `/github.io` 路径前缀、站点内搜索的 `sitesearch` 值；
-- 缺少的 `/atom.xml` 与 `/favicon.png`（原来都是 404）由构建产物提供。
+校验检查 HTML 标签闭合、站内链接与资源、首页与归档文章可达性、feed 最新 20 篇条目。桌面和移动端布局、搜索和筛选需在浏览器中检查。

@@ -1,6 +1,8 @@
 ---
 title: SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律
 date: 2026-09-24 13:00
+category: 后端工程
+tags: Go, STRM, 工程实践
 slug: smartstrm-cleanroom-go
 description: smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与"未经验证不得标完成"的完成规则。
 ---

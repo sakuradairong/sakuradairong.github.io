@@ -3,9 +3,8 @@
 
 The original Hexo source repository (hexo-blog-fly) no longer exists - only the
 generated HTML was left on the master branch.  This script rebuilds the site
-from Markdown sources in content/_posts while reproducing the markup that the
-Hexo 4.2.0 + landscape theme produced, so old pages and new pages stay
-visually and structurally identical.
+from Markdown sources in content/_posts with a responsive, self-contained
+editorial design. Existing article URLs and Markdown content are preserved.
 
 Usage:
     python3 tools/build_site.py            # write the site into the repo root
@@ -32,10 +31,8 @@ SITE_TITLE = "雨季少年的博客"
 SITE_AUTHOR = "雨季少年"
 SITE_URL = "https://sakuradairong.github.io"
 SITE_LANG = "zh-CN"
-GENERATOR = "build_site.py (Hexo 4.2.0 landscape compatible)"
+GENERATOR = "Rain Notes / build_site.py"
 TZ = timezone(timedelta(hours=8))
-RECENT_POSTS = 5
-READ_MORE = "Read more"
 
 ROOT = Path(__file__).resolve().parent.parent
 POSTS_DIR = ROOT / "content" / "_posts"
@@ -60,6 +57,8 @@ class Post:
     html_body: str = ""
     html_excerpt: str = ""
     source: str = ""
+    category: str = "工程手记"
+    tags: str = ""
 
     @property
     def path(self) -> str:
@@ -213,6 +212,8 @@ def load_posts() -> list[Post]:
                 ),
                 html_excerpt=render_markdown(excerpt_md) if has_more else "",
                 source=md_path.name,
+                category=meta.get("category", "工程手记"),
+                tags=meta.get("tags", ""),
             )
         )
 
@@ -239,401 +240,112 @@ def load_posts() -> list[Post]:
 
 
 # --------------------------------------------------------------------------
-# page shell (identical markup to the 2020 Hexo output)
+# page shell and views
 # --------------------------------------------------------------------------
-NAV = [("Home", "/"), ("Archives", "/archives")]
+def plain_text(value: str) -> str:
+    return html.unescape(re.sub(r"<[^>]+>", "", value))
 
 
-def _head(
-    title: str,
-    path: str,
-    og_type: str,
-    description: str = "",
-    published: str = "",
-) -> str:
-    desc_meta = (
-        f'<meta name="description" content="{html.escape(description, quote=True)}">\n'
-        if description
-        else ""
-    )
-    og_desc = (
-        f'<meta property="og:description" content="{html.escape(description, quote=True)}">\n'
-        if description
-        else ""
-    )
-    time_meta = ""
-    if published:
-        time_meta = (
-            f'<meta property="article:published_time" content="{published}">\n'
-            f'<meta property="article:modified_time" content="{published}">\n'
-        )
+def reading_minutes(post: Post) -> int:
+    return max(1, round(len(plain_text(post.html_body)) / 500))
+
+
+def _page(title: str, path: str, main: str, posts: list[Post],
+          og_type: str = "website", description: str = "", published: str = "") -> str:
+    esc = html.escape
+    description = description or "记录代码里的思考，和把想法做成工具的过程。雨季少年的开源项目与开发手记。"
+    nav = ''.join(f'<a href="{url}"{chr(32) + "aria-current=page" if active else ""}>{label}</a>'
+                  for url, label, active in [("/", "手记", path == "/"),
+                                            ("/archives/", "归档", path.startswith("/archives/"))])
+    search_items = ''.join(
+        f'<li data-search="{esc(p.title + " " + p.description + " " + p.tags, quote=True)}">'
+        f'<a href="{p.path}"><span>{esc(p.category)} · {p.date_text}</span>{esc(p.title)}</a></li>'
+        for p in posts)
+    published_meta = f'<meta property="article:published_time" content="{published}">' if published else ''
     return f"""<!DOCTYPE html>
-<html>
+<html lang="{SITE_LANG}">
 <head>
-  <meta charset="utf-8">
-  
-
-  <title>{title}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  {desc_meta}<meta property="og:type" content="{og_type}">
-<meta property="og:title" content="{html.escape(SITE_TITLE if title == SITE_TITLE else title.replace(' | ' + SITE_TITLE, ''), quote=True)}">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{esc(title)}</title>
+<meta name="description" content="{esc(description, quote=True)}">
+<meta property="og:title" content="{esc(title, quote=True)}">
+<meta property="og:type" content="{og_type}">
 <meta property="og:url" content="{SITE_URL}{path}">
+<meta property="og:description" content="{esc(description, quote=True)}">
 <meta property="og:site_name" content="{SITE_TITLE}">
-{og_desc}{time_meta}<meta property="article:author" content="{SITE_AUTHOR}">
 <meta name="twitter:card" content="summary">
-  
-    <link rel="alternate" href="/atom.xml" title="{SITE_TITLE}" type="application/atom+xml">
-  
-  
-    <link rel="icon" href="/favicon.png">
-  
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  
+<meta name="generator" content="{GENERATOR}">
+{published_meta}
+<link rel="canonical" href="{SITE_URL}{path}">
+<link rel="icon" href="/favicon.png">
+<link rel="alternate" href="/atom.xml" title="{SITE_TITLE}" type="application/atom+xml">
 <link rel="stylesheet" href="/css/style.css">
-
-<meta name="generator" content="{GENERATOR}"></head>
+<script src="/js/script.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header"><div class="header-inner">
+<a class="brand" href="/" aria-label="雨季少年的博客首页"><span class="brand-mark" aria-hidden="true">雨</span><span>雨季少年<span class="brand-sub">代码与生活的切片</span></span></a>
+<nav aria-label="主导航">{nav}<a href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub ↗</a><button class="search-trigger" type="button" data-open-search hidden><span aria-hidden="true">⌕</span> 搜索 <kbd>/</kbd></button></nav>
+</div></header>
+<main id="main" class="site-main" tabindex="-1">{main}</main>
+<footer class="site-footer"><div><a class="footer-brand" href="/">雨季少年<span> / </span>RAIN NOTES</a><p>在代码里探索，在文字里留痕。</p></div><div class="footer-right"><a href="/atom.xml">RSS 订阅 ↗</a><span>© 2020–{max((p.dt.year for p in posts), default=2026)} 雨季少年</span></div></footer>
+<dialog id="search-dialog" aria-labelledby="search-title"><div class="search-heading"><h2 id="search-title">搜索手记</h2><button type="button" data-close-search aria-label="关闭搜索">✕</button></div><label class="sr-only" for="search-input">输入标题、技术或关键词</label><input id="search-input" type="search" placeholder="输入标题、技术或关键词…" autocomplete="off"><p id="search-status" role="status"></p><ul class="search-results">{search_items}</ul><p class="search-hint">按 Esc 关闭 · 搜索在本地完成</p></dialog>
+</body></html>
 """
 
 
-def _header() -> str:
-    nav_links = "".join(
-        f'\n          <a class="main-nav-link" href="{href}">{label}</a>\n        '
-        for label, href in NAV
-    )
-    mobile_links = "".join(
-        f'\n    <a href="{href}" class="mobile-nav-link">{label}</a>\n  '
-        for label, href in NAV
-    )
-    return f"""<body>
-  <div id="container">
-    <div id="wrap">
-      <header id="header">
-  <div id="banner"></div>
-  <div id="header-outer" class="outer">
-    <div id="header-title" class="inner">
-      <h1 id="logo-wrap">
-        <a href="/" id="logo">{SITE_TITLE}</a>
-      </h1>
-      
-    </div>
-    <div id="header-inner" class="inner">
-      <nav id="main-nav">
-        <a id="main-nav-toggle" class="nav-icon"></a>
-        {nav_links}
-      </nav>
-      <nav id="sub-nav">
-        
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
-        
-        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
-      </nav>
-      <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="{SITE_URL}"></form>
-      </div>
-    </div>
-  </div>
-</header>
-"""
+def _card(post: Post, index: int) -> str:
+    tags = ''.join(f'<span>{html.escape(t.strip())}</span>' for t in post.tags.split(',') if t.strip())
+    return f"""<article class="post-card" data-category="{html.escape(post.category, quote=True)}">
+<div class="card-meta"><span>{html.escape(post.category)}</span><span class="card-number">{index:02d}</span></div>
+<h3><a href="{post.path}">{html.escape(post.title)}</a></h3>
+<p>{html.escape(post.description or plain_text(post.html_excerpt or post.html_body)[:150])}</p>
+<div class="tags">{tags}</div><div class="card-bottom"><time datetime="{post.iso}">{post.date_text.replace('-', '.')}</time><span>约 {reading_minutes(post)} 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article>"""
 
 
-def _sidebar(posts: list[Post]) -> str:
-    months: dict[tuple[int, int], int] = {}
-    for post in posts:
-        key = (post.dt.year, post.dt.month)
-        months[key] = months.get(key, 0) + 1
-    archive_items = "".join(
-        f'<li class="archive-list-item"><a class="archive-list-link" href="/archives/{year}/{month:02d}/">{MONTH_NAMES[month]} {year}</a></li>'
-        for (year, month) in sorted(months, reverse=True)
-    )
-    recent_items = "".join(
-        f"""
-          <li>
-            <a href="{post.path}">{html.escape(post.title)}</a>
-          </li>
-        """
-        for post in posts[:RECENT_POSTS]
-    )
-    return f"""<aside id="sidebar">
-  
-    
-
-  
-    
-
-  
-    
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Archives</h3>
-    <div class="widget">
-      <ul class="archive-list">{archive_items}</ul>
-    </div>
-  </div>
-
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
-    <div class="widget">
-      <ul>
-        {recent_items}
-      </ul>
-    </div>
-  </div>
-
-  
-</aside>
-"""
-
-
-def _footer(posts: list[Post]) -> str:
-    mobile_links = "".join(
-        f'\n    <a href="{href}" class="mobile-nav-link">{label}</a>\n  '
-        for label, href in NAV
-    )
-    return f"""      <footer id="footer">
-  
-  <div class="outer">
-    <div id="footer-info" class="inner">
-      &copy; 2020–2026 {SITE_AUTHOR}<br>
-      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
-    </div>
-  </div>
-</footer>
-    </div>
-    <nav id="mobile-nav">
-  {mobile_links}
-</nav>
-    
-
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
-
-
-
-
-<script src="/js/script.js"></script>
-
-
-
-
-  </div>
-</body>
-</html>
-"""
-
-
-def _page(
-    title: str,
-    path: str,
-    main: str,
-    posts: list[Post],
-    og_type: str = "website",
-    description: str = "",
-    published: str = "",
-) -> str:
-    return (
-        _head(title, path, og_type, description, published)
-        + _header()
-        + '      <div class="outer">\n        '
-        + main
-        + "\n      </div>\n"
-        + _footer(posts)
-    )
-
-
-# --------------------------------------------------------------------------
-# pages
-# --------------------------------------------------------------------------
-def _post_id(post: Post) -> str:
-    import hashlib
-
-    return hashlib.sha1(post.path.encode("utf-8")).hexdigest()[:24]
-
-
-def _article(post: Post, *, homepage: bool = False, newer=None, older=None) -> str:
-    if homepage:
-        entry = post.html_excerpt or post.html_body
-        more = (
-            '\n        <div class="article-more-link">\n'
-            f'          <a href="{post.path}">{READ_MORE}</a>\n'
-            "        </div>\n      "
-            if post.html_excerpt
-            else ""
-        )
-        title_html = (
-            '  \n    <h1 itemprop="name">\n'
-            f'      <a class="article-title" href="{post.path}">{html.escape(post.title)}</a>\n'
-            "    </h1>\n  \n"
-        )
-    else:
-        entry = post.html_body
-        more = ""
-        title_html = (
-            "  \n"
-            '    <h1 class="article-title" itemprop="name">\n'
-            f"      {html.escape(post.title)}\n"
-            "    </h1>\n"
-            "  \n"
-        )
-
-    nav = ""
-    if not homepage and (newer or older):
-        newer_block = ""
-        if newer is not None:
-            newer_block = f"""  
-    <a href="{newer.path}" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          {html.escape(newer.title)}
-        
-      </div>
-    </a>
-  """
-        older_block = ""
-        if older is not None:
-            older_block = f"""  
-    <a href="{older.path}" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">{html.escape(older.title)}</div>
-    </a>
-  """
-        nav = f"""    
-<nav id="article-nav">
-{newer_block}
-{older_block}
-</nav>
-
-  """
-
-    meta_date = (
-        f'<time datetime="{post.iso}" itemprop="datePublished">{post.date_text}</time>'
-    )
-    return f"""<article id="post-{post.slug}" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="{post.path}" class="article-date">
-  {meta_date}
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        {title_html}
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      {entry}{more}
-    </div>
-    <footer class="article-footer">
-      <a data-url="{SITE_URL}{post.path}" data-id="{_post_id(post)}" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  {nav}
-</article>
-"""
+def index_page(posts: list[Post]) -> str:
+    categories = list(dict.fromkeys(p.category for p in posts))
+    filters = '<button type="button" data-filter="all" aria-pressed="true">全部手记 <span>' + str(len(posts)) + '</span></button>'
+    filters += ''.join(f'<button type="button" data-filter="{html.escape(c, quote=True)}" aria-pressed="false">{html.escape(c)}</button>' for c in categories)
+    cards = ''.join(_card(p, i) for i, p in enumerate(posts, 1))
+    latest = posts[0].date_text.replace('-', '.') if posts else '尚无文章'
+    main = f"""<section class="hero" aria-labelledby="hero-title"><div class="hero-copy"><div class="eyebrow"><span class="status-dot"></span> A PERSONAL DEVELOPMENT JOURNAL</div><h1 id="hero-title">把想法写成代码，<br>把过程留在这里<span class="accent">。</span></h1><p>你好，我是雨季少年。<br>这里记录我的开源项目、工程实践，以及那些值得拆开聊聊的技术细节。</p><a class="primary-link" href="#notes">翻开开发手记 <span aria-hidden="true">↗</span></a></div><div class="hero-art" aria-hidden="true"><div class="art-grid"></div><span class="art-label">IDEAS → CODE → NOTES</span><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="art-center">雨<span>build. learn. write.</span></div><span class="art-cross cross-one">+</span><span class="art-cross cross-two">+</span><span class="art-caption">持续构建，保持好奇。<br><span>WORK IN PROGRESS / ALWAYS</span></span></div></section>
+<div class="journal-meta"><span><span class="status-dot"></span> 从真实项目中来</span><span>{len(posts):02d} 篇手记 <i>/</i> 最近更新 {latest}</span></div>
+<section id="notes" class="notes-section" aria-labelledby="notes-title"><div class="section-heading"><div><span class="eyebrow">THE NOTEBOOK</span><h2 id="notes-title">最近的探索<span>每一个细节，都有来由。</span></h2></div><a href="/archives/">全部归档 ↗</a></div><div class="filters" aria-label="按主题筛选" hidden>{filters}</div><p class="sr-only" id="filter-status" role="status"></p><div class="post-grid">{cards}</div></section>
+<aside class="closing-note"><span class="closing-symbol" aria-hidden="true">*</span><div><h2>代码之外，也是记录。</h2><p>好的工具从一个小问题开始，好的记录让下一次探索更容易。</p></div><a href="https://github.com/sakuradairong" target="_blank" rel="noopener">去 GitHub 看看 ↗</a></aside>"""
+    return _page(SITE_TITLE, '/', main, posts)
 
 
 def post_page(post: Post, posts: list[Post]) -> str:
     idx = posts.index(post)
-    newer = posts[idx - 1] if idx > 0 else None
-    older = posts[idx + 1] if idx + 1 < len(posts) else None
-    main = f"""<section id="main">{_article(post, newer=newer, older=older)}
-
-</section>
-        
-          {_sidebar(posts)}"""
-    return _page(
-        f"{post.title} | {SITE_TITLE}",
-        f"{post.path}index.html",
-        main,
-        posts,
-        og_type="article",
-        description=post.description,
-        published=post.iso,
-    )
-
-
-def index_page(posts: list[Post]) -> str:
-    articles = "".join(
-        f"\n  \n    {_article(post, homepage=True)}\n\n" for post in posts
-    )
-    main = f"""<section id="main">{articles}
-  \n
-
-</section>
-        
-          {_sidebar(posts)}"""
-    return _page(SITE_TITLE, "/index.html", main, posts)
-
-
-def _archive_article(post: Post) -> str:
-    return f"""    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="{post.path}" class="archive-article-date">
-  <time datetime="{post.iso}" itemprop="datePublished">{post.archive_date_text}</time>
-</a>
-      
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="{post.path}">{html.escape(post.title)}</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-"""
-
-
-def archive_section(year: int, posts: list[Post]) -> str:
-    items = "".join(f"    \n{_archive_article(p)}  \n" for p in posts)
-    return f"""      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/{year}" class="archive-year">{year}</a>
-        </div>
-        <div class="archives">
-    {items}
-    </div></section>
-"""
+    toc = ''.join(f'<li class="toc-level-{level}"><a href="#{anchor}">{html.escape(plain_text(body))}</a></li>'
+                  for level, anchor, body in re.findall(r'<h([23]) id="([^"]+)">(.*?)</h[23]>', post.html_body, re.DOTALL))
+    neighbours = ''
+    for label, neighbour in [('← 较新一篇', posts[idx - 1] if idx else None),
+                              ('较早一篇 →', posts[idx + 1] if idx + 1 < len(posts) else None)]:
+        if neighbour:
+            neighbours += f'<a href="{neighbour.path}"><span>{label}</span>{html.escape(neighbour.title)}</a>'
+    main = f"""<div class="breadcrumb"><a href="/">手记</a><span>/</span>{html.escape(post.category)}</div><div class="reading-layout"><article class="reading-article"><header class="post-header"><div class="eyebrow">{html.escape(post.category)} / DEVELOPMENT NOTES</div><h1>{html.escape(post.title)}</h1><div class="post-meta"><span>雨季少年</span><time datetime="{post.iso}">{post.date_text}</time><span>约 {reading_minutes(post)} 分钟</span></div><p class="post-description">{html.escape(post.description)}</p></header><div class="article-entry">{post.html_body}</div><footer class="article-footer"><a href="/">← 返回所有手记</a><button type="button" data-copy-url hidden>复制文章链接</button><span id="copy-status" role="status"></span></footer><nav class="article-nav" aria-label="相邻文章">{neighbours}</nav></article><aside class="reading-sidebar"><nav class="toc" aria-label="文章目录"><span class="eyebrow">ON THIS PAGE</span><h2>文章目录</h2><ol>{toc}</ol><a class="back-top" href="#main">回到顶部 ↑</a></nav></aside></div>"""
+    return _page(f'{post.title} | {SITE_TITLE}', post.path, main, posts, 'article', post.description, post.iso)
 
 
 def archive_page(title: str, sections: list[tuple[int, int | None]], posts: list[Post]) -> str:
-    blocks = "".join(
-        "  \n  \n    \n    \n      \n      \n"
-        + archive_section(
-            year,
-            [
-                p
-                for p in posts
-                if p.dt.year == year and (month is None or p.dt.month == month)
-            ],
-        )
-        + "  \n"
-        for year, month in sections
-    )
-    main = f"""<section id="main">
-  {blocks}
-
-</section>
-        
-          {_sidebar(posts)}"""
-    return _page(title, "", main, posts)
+    path = '/archives/'
+    if title.startswith('Archives:') and sections:
+        year, month = sections[0]
+        path += f'{year}/' + (f'{month:02d}/' if month else '')
+    blocks = ''
+    count = 0
+    for year, month in sections:
+        selected = [p for p in posts if p.dt.year == year and (month is None or p.dt.month == month)]
+        count += len(selected)
+        rows = ''.join(f'<a class="archive-row" href="{p.path}"><time datetime="{p.iso}">{p.dt.strftime("%m.%d")}</time><h3>{html.escape(p.title)}</h3><span>{html.escape(p.category)}</span><span aria-hidden="true">↗</span></a>' for p in selected)
+        blocks += f'<section class="archive-group"><h2><a href="/archives/{year}/">{year}</a><span>{len(selected)} 篇手记</span></h2>{rows}</section>'
+    scope = '全部归档' if path == '/archives/' else f'{year} 年' + (f' {month} 月' if month else '')
+    main = f'<section class="archive-intro"><span class="eyebrow">THE ARCHIVE</span><h1>时间里的脚印<span class="accent">。</span></h1><p>{scope} · 共 {count} 篇手记，每一次探索都有迹可循。</p><a href="/archives/">浏览全部归档 ↗</a></section>{blocks}'
+    return _page(f'{scope} | {SITE_TITLE}', path, main, posts)
 
 
 # --------------------------------------------------------------------------
@@ -667,7 +379,7 @@ def atom_xml(posts: list[Post]) -> str:
         f"  <updated>{updated}</updated>\n"
         f"  <id>{SITE_URL}/</id>\n"
         f"  <author><name>{SITE_AUTHOR}</name></author>\n"
-        '  <generator uri="https://hexo.io/">Hexo</generator>\n'
+        f'  <generator>{GENERATOR}</generator>\n'
         + "".join(entries)
         + "</feed>\n"
     )
@@ -879,8 +591,15 @@ def check() -> int:
             if not (ROOT / src.lstrip("/")).exists():
                 problems.append(f"{rel}: broken asset {src}")
 
+    # Verify discovery in the visible content, excluding the shared search dialog.
+    discovery_pages = [ROOT / "index.html", ROOT / "archives" / "index.html"]
+    discovery_html = {p: p.read_text(encoding="utf-8").split("</main>")[0]
+                      for p in discovery_pages if p.exists()}
     # every post must be reachable from index + archives + atom
     for post in posts:
+        for discovery_page in discovery_pages:
+            if f'href="{post.path}"' not in discovery_html.get(discovery_page, ""):
+                problems.append(f"{discovery_page.relative_to(ROOT)}: missing article link {post.path}")
         page = ROOT / post.path.lstrip("/") / "index.html"
         if not page.exists():
             problems.append(f"missing post page {post.path}")
@@ -919,18 +638,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
-    @property
-    def date_text(self) -> str:
-        return self.dt.strftime("%Y-%m-%d")
-
-    @property
-    def iso(self) -> str:
-        return (
-            self.dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-            + "Z"
-        )
-
-    @property
-    def archive_date_text(self) -> str:
-        return f"{MONTH_ABBR[self.dt.month]} {self.dt.day}"

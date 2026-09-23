@@ -1,6 +1,8 @@
 ---
 title: TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器
 date: 2026-09-24 09:00
+category: Web 与可视化
+tags: Node.js, WebSocket, 遥测
 slug: truckdeck-telemetry-control
 description: TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及"绝不在 mock 模式下注入"的边界设计。
 ---

@@ -1,89 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  
-
-  <title>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 | 雨季少年的博客</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 | 雨季少年的博客</title>
+<meta name="description" content="smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。">
+<meta property="og:title" content="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 | 雨季少年的博客">
 <meta property="og:type" content="article">
-<meta property="og:title" content="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律">
-<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/index.html">
-<meta property="og:site_name" content="雨季少年的博客">
+<meta property="og:url" content="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/">
 <meta property="og:description" content="smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。">
-<meta property="article:published_time" content="2026-09-24T05:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-24T05:00:00.000Z">
-<meta property="article:author" content="雨季少年">
+<meta property="og:site_name" content="雨季少年的博客">
 <meta name="twitter:card" content="summary">
-  
-    <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
-  
-  
-    <link rel="icon" href="/favicon.png">
-  
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  
+<meta name="generator" content="Rain Notes / build_site.py">
+<meta property="article:published_time" content="2026-09-24T05:00:00.000Z">
+<link rel="canonical" href="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/">
+<link rel="icon" href="/favicon.png">
+<link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
 <link rel="stylesheet" href="/css/style.css">
-
-<meta name="generator" content="build_site.py (Hexo 4.2.0 landscape compatible)"></head>
+<script src="/js/script.js" defer></script>
+</head>
 <body>
-  <div id="container">
-    <div id="wrap">
-      <header id="header">
-  <div id="banner"></div>
-  <div id="header-outer" class="outer">
-    <div id="header-title" class="inner">
-      <h1 id="logo-wrap">
-        <a href="/" id="logo">雨季少年的博客</a>
-      </h1>
-      
-    </div>
-    <div id="header-inner" class="inner">
-      <nav id="main-nav">
-        <a id="main-nav-toggle" class="nav-icon"></a>
-        
-          <a class="main-nav-link" href="/">Home</a>
-        
-          <a class="main-nav-link" href="/archives">Archives</a>
-        
-      </nav>
-      <nav id="sub-nav">
-        
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
-        
-        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
-      </nav>
-      <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://sakuradairong.github.io"></form>
-      </div>
-    </div>
-  </div>
-</header>
-      <div class="outer">
-        <section id="main"><article id="post-smartstrm-cleanroom-go" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2026/09/24/smartstrm-cleanroom-go/" class="article-date">
-  <time datetime="2026-09-24T05:00:00.000Z" itemprop="datePublished">2026-09-24</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-          
-    <h1 class="article-title" itemprop="name">
-      SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      <p><a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">smartstrm-cleanroom</a> 是一个用 Go 1.23 从零实现的 STRM 生成 / 任务自动化 / 安全播放服务，AGPL-3.0 发布。</p>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header"><div class="header-inner">
+<a class="brand" href="/" aria-label="雨季少年的博客首页"><span class="brand-mark" aria-hidden="true">雨</span><span>雨季少年<span class="brand-sub">代码与生活的切片</span></span></a>
+<nav aria-label="主导航"><a href="/">手记</a><a href="/archives/">归档</a><a href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub ↗</a><button class="search-trigger" type="button" data-open-search hidden><span aria-hidden="true">⌕</span> 搜索 <kbd>/</kbd></button></nav>
+</div></header>
+<main id="main" class="site-main" tabindex="-1"><div class="breadcrumb"><a href="/">手记</a><span>/</span>后端工程</div><div class="reading-layout"><article class="reading-article"><header class="post-header"><div class="eyebrow">后端工程 / DEVELOPMENT NOTES</div><h1>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</h1><div class="post-meta"><span>雨季少年</span><time datetime="2026-09-24T05:00:00.000Z">2026-09-24</time><span>约 8 分钟</span></div><p class="post-description">smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。</p></header><div class="article-entry"><p><a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">smartstrm-cleanroom</a> 是一个用 Go 1.23 从零实现的 STRM 生成 / 任务自动化 / 安全播放服务，AGPL-3.0 发布。</p>
 <p>它最有意思的地方不是"又做了一个 STRM 工具"，而是它把<strong>"什么算完成"这件事写成了规则</strong>：功能矩阵里 <code>🟡</code> 部分实现与 <code>⬜</code> 未实现都不许计入完成，每个 <code>✅</code> 必须附上文件、测试、真实协议或容器运行证据。</p>
 <h2 id="一clean-room-的边界"><a href="#一clean-room-的边界" class="headerlink" title="一、clean-room 的边界"></a>一、clean-room 的边界</h2>
 <p>README 开头就把话说死了：本仓库依据公开功能说明和公开协议从零编写，<strong>不包含原闭源项目的私有源码，不绕过许可证，也不调用未经授权的私有 API</strong>；项目名称只用于说明兼容目标。落到实现上，还额外加了两条自我约束：</p>
@@ -140,130 +82,7 @@
 <p>原生夸克/115/天翼/123/迅雷账号驱动未实现（经 OpenList 使用）；Plex、飞牛影视与特定 Emby/Jellyfin 客户端的深度兼容仍待真实验证；TMDB 的实网限流/代理/地区响应需要真实 Key；File ID 模式的真实驱动与账号验证待完成。</p>
 <h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
 <p>这个项目示范了一种可复制的工程态度：<strong>把外部依赖的每个不变量写进策略包</strong>（pathpolicy / urlpolicy / signature / cronexpr），<strong>把"部分完成"和"未完成"从"完成"里剔除</strong>，并且让"危险操作"（同步删除）必须通过一整轮的零失败才有资格执行。</p>
-<p>仓库：<a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">sakuradairong/smartstrm-cleanroom</a>（AGPL-3.0）</p>
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://sakuradairong.github.io/2026/09/24/smartstrm-cleanroom-go/" data-id="a5d231b63ea3b191d0f51358" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-      
-<nav id="article-nav">
-  
-    <a href="/2026/09/24/keystats-3d-heatmap/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽
-        
-      </div>
-    </a>
-  
-  
-    <a href="/2026/09/24/bilidesk-tauri-libmpv/" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</div>
-    </a>
-  
-</nav>
-
-  
-</article>
-
-
-</section>
-        
-          <aside id="sidebar">
-  
-    
-
-  
-    
-
-  
-    
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Archives</h3>
-    <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/09/">September 2026</a></li></ul>
-    </div>
-  </div>
-
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
-    <div class="widget">
-      <ul>
-        
-          <li>
-            <a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a>
-          </li>
-        
-          <li>
-            <a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a>
-          </li>
-        
-          <li>
-            <a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a>
-          </li>
-        
-          <li>
-            <a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a>
-          </li>
-        
-          <li>
-            <a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-
-  
-</aside>
-
-      </div>
-      <footer id="footer">
-  
-  <div class="outer">
-    <div id="footer-info" class="inner">
-      &copy; 2020–2026 雨季少年<br>
-      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
-    </div>
-  </div>
-</footer>
-    </div>
-    <nav id="mobile-nav">
-  
-    <a href="/" class="mobile-nav-link">Home</a>
-  
-    <a href="/archives" class="mobile-nav-link">Archives</a>
-  
-</nav>
-    
-
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
-
-
-
-
-<script src="/js/script.js"></script>
-
-
-
-
-  </div>
-</body>
-</html>
+<p>仓库：<a href="https://github.com/sakuradairong/smartstrm-cleanroom" target="_blank" rel="noopener">sakuradairong/smartstrm-cleanroom</a>（AGPL-3.0）</p></div><footer class="article-footer"><a href="/">← 返回所有手记</a><button type="button" data-copy-url hidden>复制文章链接</button><span id="copy-status" role="status"></span></footer><nav class="article-nav" aria-label="相邻文章"><a href="/2026/09/24/keystats-3d-heatmap/"><span>← 较新一篇</span>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a><a href="/2026/09/24/bilidesk-tauri-libmpv/"><span>较早一篇 →</span>BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a></nav></article><aside class="reading-sidebar"><nav class="toc" aria-label="文章目录"><span class="eyebrow">ON THIS PAGE</span><h2>文章目录</h2><ol><li class="toc-level-2"><a href="#一clean-room-的边界">一、clean-room 的边界</a></li><li class="toc-level-2"><a href="#二代码结构与体量">二、代码结构与体量</a></li><li class="toc-level-2"><a href="#三生成器并发之外的正确性">三、生成器：并发之外的正确性</a></li><li class="toc-level-2"><a href="#四签名播放与-url-策略">四、签名播放与 URL 策略</a></li><li class="toc-level-2"><a href="#五存储驱动把能连上做成能证明">五、存储驱动：把&quot;能连上&quot;做成&quot;能证明&quot;</a></li><li class="toc-level-2"><a href="#六配置与部署">六、配置与部署</a></li><li class="toc-level-2"><a href="#七cron-也会咬人">七、Cron 也会咬人</a></li><li class="toc-level-2"><a href="#八验证体系">八、验证体系</a></li><li class="toc-level-2"><a href="#九已知边界">九、已知边界</a></li><li class="toc-level-2"><a href="#小结">小结</a></li></ol><a class="back-top" href="#main">回到顶部 ↑</a></nav></aside></div></main>
+<footer class="site-footer"><div><a class="footer-brand" href="/">雨季少年<span> / </span>RAIN NOTES</a><p>在代码里探索，在文字里留痕。</p></div><div class="footer-right"><a href="/atom.xml">RSS 订阅 ↗</a><span>© 2020–2026 雨季少年</span></div></footer>
+<dialog id="search-dialog" aria-labelledby="search-title"><div class="search-heading"><h2 id="search-title">搜索手记</h2><button type="button" data-close-search aria-label="关闭搜索">✕</button></div><label class="sr-only" for="search-input">输入标题、技术或关键词</label><input id="search-input" type="search" placeholder="输入标题、技术或关键词…" autocomplete="off"><p id="search-status" role="status"></p><ul class="search-results"><li data-search="AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染 一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。 Python, AstrBot, HTML"><a href="/2026/09/24/astrbot-plugin-linuxsb/"><span>插件与扩展 · 2026-09-24</span>AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a></li><li data-search="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。 Lua, Rime, Bigram"><a href="/2026/09/24/rime-context-filter-bigram/"><span>插件与扩展 · 2026-09-24</span>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a></li><li data-search="KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽 把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。 CSS 3D, TypeScript, 可视化"><a href="/2026/09/24/keystats-3d-heatmap/"><span>Web 与可视化 · 2026-09-24</span>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a></li><li data-search="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。 Go, STRM, 工程实践"><a href="/2026/09/24/smartstrm-cleanroom-go/"><span>后端工程 · 2026-09-24</span>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a></li><li data-search="BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。 Tauri, Rust, libmpv"><a href="/2026/09/24/bilidesk-tauri-libmpv/"><span>桌面应用 · 2026-09-24</span>BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a></li><li data-search="TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继 TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。 Tauri, Rust, React"><a href="/2026/09/24/tiez-clipboard-tauri/"><span>桌面应用 · 2026-09-24</span>TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</a></li><li data-search="TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器 TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。 Node.js, WebSocket, 遥测"><a href="/2026/09/24/truckdeck-telemetry-control/"><span>Web 与可视化 · 2026-09-24</span>TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</a></li></ul><p class="search-hint">按 Esc 关闭 · 搜索在本地完成</p></dialog>
+</body></html>
