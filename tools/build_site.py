@@ -731,7 +731,7 @@ def _favicon_png(size: int = 32) -> bytes:
 # --------------------------------------------------------------------------
 # build
 # --------------------------------------------------------------------------
-def build() -> list[Path]:
+def build() -> tuple[list[Path], list[Path]]:
     posts = load_posts()
     written: list[Path] = []
 
@@ -785,7 +785,9 @@ def build() -> list[Path]:
     write(ROOT / "atom.xml", atom_xml(posts))
     (ROOT / "favicon.png").write_bytes(_favicon_png(32))
     written.append(ROOT / "favicon.png")
-    return written
+
+    removed = _cleanup({p for p in written if p.name == "index.html"})
+    return written, removed
 
 
 # --------------------------------------------------------------------------
@@ -829,6 +831,21 @@ def _html_files() -> list[Path]:
     files += sorted(ROOT.glob("20*/*/*/*/index.html"))
     files += sorted(ROOT.glob("archives/**/index.html"))
     return [f for f in files if f.exists()]
+
+
+def _cleanup(expected: set[Path]) -> list[Path]:
+    """Remove generated pages whose sources are gone (deleted posts/archives)."""
+    removed: list[Path] = []
+    for path in _html_files():
+        if path in expected:
+            continue
+        path.unlink()
+        removed.append(path)
+        parent = path.parent
+        while parent != ROOT and not any(parent.iterdir()):
+            parent.rmdir()
+            parent = parent.parent
+    return removed
 
 
 def check() -> int:
@@ -889,10 +906,14 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     if not args.check:
-        written = build()
+        written, removed = build()
         print(f"built {len(written)} files")
         for path in written:
             print("   ", path.relative_to(ROOT))
+        if removed:
+            print(f"removed {len(removed)} stale file(s)")
+            for path in removed:
+                print("   -", path.relative_to(ROOT))
     return check()
 
 

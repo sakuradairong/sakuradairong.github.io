@@ -7,9 +7,13 @@
 
 ```
 content/_posts/*.md    文章源（Markdown + front matter）
-content/legacy/*.json  2020 年两篇旧文章，从原产物中提取，构建时原样输出
+content/legacy/*.json  非 Markdown 来源的历史文章（可选，当前为空）
 tools/build_site.py    生成器：文章页 / 首页 / 归档页 / atom.xml / favicon.png
 ```
+
+> 2020 年的两篇占位文章（`article-title`、`hello-world`）已删除，对应的 `content/legacy/*.json`
+> 与生成页面一并移除。若今后还需要保留某篇无法转成 Markdown 的旧文章，可以按原格式放回该目录，
+> 构建时会原样输出。
 
 ## 写一篇新文章
 
@@ -52,5 +56,6 @@ python3 tools/build_site.py --check  # 只做校验（标签闭合、内链/资�
 
 - 归档页会自动按 `年 / 月` 目录生成（`/archives/2026/09/`）；
 - 侧栏 "Archives" 与 "Recent Posts" 由脚本统一渲染，新增文章后无需手工改动；
+- **删除文章只需要删掉 `content/_posts/` 下对应的 Markdown**：构建会自动清理失去来源的文章页与归档页，并回收空目录；
 - 生成器同时修正了 2020 年产物里的两个问题：`og:url` 中的多余 `/github.io` 路径前缀、站点内搜索的 `sitesearch` 值；
 - 缺少的 `/atom.xml` 与 `/favicon.png`（原来都是 404）由构建产物提供。
