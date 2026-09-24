@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 | 雨季少年的博客</title>
 <meta name="description" content="rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。">
 <meta property="og:title" content="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 | 雨季少年的博客">
@@ -17,15 +18,38 @@
 <link rel="icon" href="/favicon.png">
 <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
 <link rel="stylesheet" href="/css/style.css">
+<script>(function(){try{var s=localStorage.getItem('rain-theme');var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var t=(s==='dark'||s==='light')?s:(m?'dark':'light');var r=document.documentElement;r.setAttribute('data-theme',t);if(s==='dark'||s==='light'){r.setAttribute('data-theme-choice','user');}}catch(e){}})();</script>
 <script src="/js/script.js" defer></script>
 </head>
-<body>
+<body class="page-post">
 <a class="skip-link" href="#main">跳到正文</a>
-<header class="site-header"><div class="header-inner">
-<a class="brand" href="/" aria-label="雨季少年的博客首页"><span class="brand-mark" aria-hidden="true">雨</span><span>雨季少年<span class="brand-sub">代码与生活的切片</span></span></a>
-<nav aria-label="主导航"><a href="/">手记</a><a href="/archives/">归档</a><a href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub ↗</a><button class="search-trigger" type="button" data-open-search hidden><span aria-hidden="true">⌕</span> 搜索 <kbd>/</kbd></button></nav>
-</div></header>
-<main id="main" class="site-main" tabindex="-1"><div class="breadcrumb"><a href="/">手记</a><span>/</span>插件与扩展</div><div class="reading-layout"><article class="reading-article"><header class="post-header"><div class="eyebrow">插件与扩展 / DEVELOPMENT NOTES</div><h1>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</h1><div class="post-meta"><span>雨季少年</span><time datetime="2026-09-24T07:00:00.000Z">2026-09-24</time><span>约 6 分钟</span></div><p class="post-description">rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。</p></header><div class="article-entry"><p>输入法里加"联想"很容易做坏——常见的失败模式是：把词频、后缀匹配、字符串拼接混在一起，最后得到一个经常乱序、还悄悄覆盖用户词库的过滤器。</p>
+<nav class="topbar" aria-label="主导航">
+<div class="topbar-inner wrap">
+<a class="topbar-brand" href="/"><span class="brand-mark" aria-hidden="true">雨</span><span class="brand-text">雨季少年</span></a>
+<div class="topbar-actions">
+<a class="nav-link" href="/">首页</a>
+<a class="nav-link" href="/archives/">归档</a>
+<a class="nav-link nav-ext" href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub<span class="nav-ext-mark" aria-hidden="true">↗</span></a>
+<button class="icon-btn" type="button" data-open-search aria-label="搜索文章" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="8.7" cy="8.7" r="5.1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 12.6 17 17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+<button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="切换到深色模式" aria-pressed="false" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" class="icon-sun"><circle cx="10" cy="10" r="3.9" fill="currentColor"/><path d="M10 1.5V4M10 16v2.5M1.5 10H4M16 10h2.5M4 4l1.8 1.8M14.2 14.2 16 16M16 4l-1.8 1.8M5.8 14.2 4 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" class="icon-moon"><path d="M15.8 13.2A6.6 6.6 0 0 1 7 4.3a6.8 6.8 0 1 0 8.8 8.9Z" fill="currentColor"/></svg></button>
+</div>
+</div>
+<div class="topbar-progress" aria-hidden="true"><span data-progress></span></div>
+</nav>
+<header class="hero hero--page hero--post">
+<div class="hero-media" aria-hidden="true"></div>
+<div class="hero-inner wrap">
+<nav class="breadcrumb" aria-label="面包屑"><a href="/">首页</a><span class="crumb-sep" aria-hidden="true">/</span><a href="/archives/">归档</a><span class="crumb-sep" aria-hidden="true">/</span><span class="crumb-current">插件与扩展</span></nav>
+<h1 class="hero-title">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</h1>
+<p class="hero-sub"><time datetime="2026-09-24T07:00:00.000Z">2026-09-24</time><span class="meta-sep" aria-hidden="true"></span><span>约 6 分钟阅读</span><span class="meta-sep" aria-hidden="true"></span><span>插件与扩展</span></p>
+</div>
+</header>
+<main id="main" class="site-main wrap" tabindex="-1"><div class="page-grid page-grid--post" data-filter-scope>
+<div class="page-main">
+<article class="post">
+<details class="toc-mobile"><summary>文章目录<span class="toc-mobile-count">8 节</span></summary><nav aria-label="文章目录"><ol class="toc-list"><li class="toc-item toc-level-2"><a href="#一它做什么不做什么">一、它做什么、不做什么</a></li><li class="toc-item toc-level-2"><a href="#二打分概率-置信度">二、打分：概率 × 置信度</a></li><li class="toc-item toc-level-2"><a href="#三生命周期在哪个钩子上学习">三、生命周期：在哪个钩子上学习</a></li><li class="toc-item toc-level-2"><a href="#四性能热路径不碰磁盘">四、性能：热路径不碰磁盘</a></li><li class="toc-item toc-level-2"><a href="#五落盘原子替换-损坏保护">五、落盘：原子替换 + 损坏保护</a></li><li class="toc-item toc-level-2"><a href="#六装在哪怎么验证">六、装在哪、怎么验证</a></li><li class="toc-item toc-level-2"><a href="#七限制">七、限制</a></li><li class="toc-item toc-level-2"><a href="#小结">小结</a></li></ol></nav></details>
+<p class="post-lede">rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。</p>
+<div class="article-entry"><p>输入法里加"联想"很容易做坏——常见的失败模式是：把词频、后缀匹配、字符串拼接混在一起，最后得到一个经常乱序、还悄悄覆盖用户词库的过滤器。</p>
 <p><a href="https://github.com/sakuradairong/rime-lua-scripts" target="_blank" rel="noopener">rime_context_filter</a> 的定位很窄，也很清楚：<strong>只做词级二元模型（bigram）</strong>，只按相邻两个有效词的搭配统计来微调候选顺序，其余交给 Rime 原生的用户词典（造词、调频、删词都不越权）。</p>
 <h2 id="一它做什么不做什么"><a href="#一它做什么不做什么" class="headerlink" title="一、它做什么、不做什么"></a>一、它做什么、不做什么</h2>
 <p>效果可以一句话描述：当你先确认了"接下来的"，之后再输入 <code>renwu</code>，如果"任务"在相同前文下被稳定选择过两次以上，它就会被适度提前。</p>
@@ -92,7 +116,78 @@
 </ul>
 <h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2>
 <p>它是"小模型也值得工程化"的样本：<strong>统计与提权解耦</strong>（可以放心记录而不用担心污染排序）、<strong>热路径零 IO</strong>、<strong>原子落盘 + 显式失败原因</strong>、<strong>跨版本兼容读取</strong>。这几条放在任何本地学习功能里都成立。</p>
-<p>仓库：<a href="https://github.com/sakuradairong/rime-lua-scripts" target="_blank" rel="noopener">sakuradairong/rime-lua-scripts</a>（MIT）</p></div><footer class="article-footer"><a href="/">← 返回所有手记</a><button type="button" data-copy-url hidden>复制文章链接</button><span id="copy-status" role="status"></span></footer><nav class="article-nav" aria-label="相邻文章"><a href="/2026/09/24/astrbot-plugin-linuxsb/"><span>← 较新一篇</span>AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a><a href="/2026/09/24/keystats-3d-heatmap/"><span>较早一篇 →</span>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a></nav></article><aside class="reading-sidebar"><nav class="toc" aria-label="文章目录"><span class="eyebrow">ON THIS PAGE</span><h2>文章目录</h2><ol><li class="toc-level-2"><a href="#一它做什么不做什么">一、它做什么、不做什么</a></li><li class="toc-level-2"><a href="#二打分概率-置信度">二、打分：概率 × 置信度</a></li><li class="toc-level-2"><a href="#三生命周期在哪个钩子上学习">三、生命周期：在哪个钩子上学习</a></li><li class="toc-level-2"><a href="#四性能热路径不碰磁盘">四、性能：热路径不碰磁盘</a></li><li class="toc-level-2"><a href="#五落盘原子替换-损坏保护">五、落盘：原子替换 + 损坏保护</a></li><li class="toc-level-2"><a href="#六装在哪怎么验证">六、装在哪、怎么验证</a></li><li class="toc-level-2"><a href="#七限制">七、限制</a></li><li class="toc-level-2"><a href="#小结">小结</a></li></ol><a class="back-top" href="#main">回到顶部 ↑</a></nav></aside></div></main>
-<footer class="site-footer"><div><a class="footer-brand" href="/">雨季少年<span> / </span>RAIN NOTES</a><p>在代码里探索，在文字里留痕。</p></div><div class="footer-right"><a href="/atom.xml">RSS 订阅 ↗</a><span>© 2020–2026 雨季少年</span></div></footer>
-<dialog id="search-dialog" aria-labelledby="search-title"><div class="search-heading"><h2 id="search-title">搜索手记</h2><button type="button" data-close-search aria-label="关闭搜索">✕</button></div><label class="sr-only" for="search-input">输入标题、技术或关键词</label><input id="search-input" type="search" placeholder="输入标题、技术或关键词…" autocomplete="off"><p id="search-status" role="status"></p><ul class="search-results"><li data-search="AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染 一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。 Python, AstrBot, HTML"><a href="/2026/09/24/astrbot-plugin-linuxsb/"><span>插件与扩展 · 2026-09-24</span>AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a></li><li data-search="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。 Lua, Rime, Bigram"><a href="/2026/09/24/rime-context-filter-bigram/"><span>插件与扩展 · 2026-09-24</span>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a></li><li data-search="KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽 把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。 CSS 3D, TypeScript, 可视化"><a href="/2026/09/24/keystats-3d-heatmap/"><span>Web 与可视化 · 2026-09-24</span>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a></li><li data-search="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。 Go, STRM, 工程实践"><a href="/2026/09/24/smartstrm-cleanroom-go/"><span>后端工程 · 2026-09-24</span>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a></li><li data-search="BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。 Tauri, Rust, libmpv"><a href="/2026/09/24/bilidesk-tauri-libmpv/"><span>桌面应用 · 2026-09-24</span>BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a></li><li data-search="TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继 TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。 Tauri, Rust, React"><a href="/2026/09/24/tiez-clipboard-tauri/"><span>桌面应用 · 2026-09-24</span>TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</a></li><li data-search="TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器 TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。 Node.js, WebSocket, 遥测"><a href="/2026/09/24/truckdeck-telemetry-control/"><span>Web 与可视化 · 2026-09-24</span>TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</a></li></ul><p class="search-hint">按 Esc 关闭 · 搜索在本地完成</p></dialog>
+<p>仓库：<a href="https://github.com/sakuradairong/rime-lua-scripts" target="_blank" rel="noopener">sakuradairong/rime-lua-scripts</a>（MIT）</p></div>
+<footer class="article-footer">
+<ul class="post-tags post-tags--footer"><li>Lua</li><li>Rime</li><li>Bigram</li></ul>
+<div class="article-actions">
+<a class="btn-ghost" href="/">← 全部手记</a>
+<button class="btn-ghost" type="button" data-copy-url hidden>复制文章链接</button>
+<span id="copy-status" class="copy-status" role="status"></span>
+</div>
+</footer>
+<nav class="article-nav" aria-label="相邻文章"><a class="neighbour" href="/2026/09/24/astrbot-plugin-linuxsb/"><span class="neighbour-label">较新一篇</span><span class="neighbour-title">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</span></a><a class="neighbour" href="/2026/09/24/keystats-3d-heatmap/"><span class="neighbour-label">较早一篇</span><span class="neighbour-title">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</span></a></nav>
+</article>
+</div>
+<aside class="sidebar sidebar--post"><section class="widget widget-toc">
+<h2 class="widget-title">目录</h2>
+<nav aria-label="文章目录"><ol class="toc-list"><li class="toc-item toc-level-2"><a href="#一它做什么不做什么">一、它做什么、不做什么</a></li><li class="toc-item toc-level-2"><a href="#二打分概率-置信度">二、打分：概率 × 置信度</a></li><li class="toc-item toc-level-2"><a href="#三生命周期在哪个钩子上学习">三、生命周期：在哪个钩子上学习</a></li><li class="toc-item toc-level-2"><a href="#四性能热路径不碰磁盘">四、性能：热路径不碰磁盘</a></li><li class="toc-item toc-level-2"><a href="#五落盘原子替换-损坏保护">五、落盘：原子替换 + 损坏保护</a></li><li class="toc-item toc-level-2"><a href="#六装在哪怎么验证">六、装在哪、怎么验证</a></li><li class="toc-item toc-level-2"><a href="#七限制">七、限制</a></li><li class="toc-item toc-level-2"><a href="#小结">小结</a></li></ol></nav>
+<a class="widget-more" href="#main">回到文章顶部 ↑</a>
+</section><section class="widget widget-author">
+<div class="author-top">
+<img class="author-avatar" src="/css/images/avatar.svg" alt="" width="60" height="60" loading="lazy" decoding="async">
+<div class="author-id">
+<h2 class="widget-title">雨季少年</h2>
+<p class="author-handle">@sakuradairong</p>
+</div>
+</div>
+<p class="author-bio">把想法写成代码，把过程留在这里。记录开源项目、工程实践，以及那些值得拆开聊的技术细节。</p>
+<ul class="author-stats">
+<li><strong>7</strong><span>文章</span></li>
+<li><strong>4</strong><span>分类</span></li>
+<li><strong>19</strong><span>标签</span></li>
+</ul>
+<a class="btn-ghost" href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub<span aria-hidden="true">↗</span></a><a class="btn-ghost" href="/atom.xml">RSS 订阅</a>
+</section><section class="widget widget-cats">
+<h2 class="widget-title">分类</h2>
+<ul class="widget-list"><li><span class="widget-label">Web 与可视化</span><span class="widget-count">2</span></li><li><span class="widget-label">插件与扩展</span><span class="widget-count">2</span></li><li><span class="widget-label">桌面应用</span><span class="widget-count">2</span></li><li><span class="widget-label">后端工程</span><span class="widget-count">1</span></li></ul>
+
+</section><section class="widget widget-archive">
+<h2 class="widget-title">归档</h2>
+<ul class="widget-list widget-list--tree"><li><a href="/archives/2026/"><span class="widget-label">2026 年</span><span class="widget-count">7</span></a><ul class="archive-months"><li><a href="/archives/2026/09/"><span class="widget-label">09 月</span><span class="widget-count">7</span></a></li></ul></li></ul>
+<a class="widget-more" href="/archives/">全部归档<span aria-hidden="true">↗</span></a>
+</section><section class="widget widget-recent">
+<h2 class="widget-title">最近文章</h2>
+<ol class="recent-list"><li><a href="/2026/09/24/astrbot-plugin-linuxsb/"><time datetime="2026-09-24T08:00:00.000Z">2026-09-24</time><span class="recent-title">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</span></a></li><li><a href="/2026/09/24/rime-context-filter-bigram/"><time datetime="2026-09-24T07:00:00.000Z">2026-09-24</time><span class="recent-title">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</span></a></li><li><a href="/2026/09/24/keystats-3d-heatmap/"><time datetime="2026-09-24T06:00:00.000Z">2026-09-24</time><span class="recent-title">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</span></a></li><li><a href="/2026/09/24/smartstrm-cleanroom-go/"><time datetime="2026-09-24T05:00:00.000Z">2026-09-24</time><span class="recent-title">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</span></a></li><li><a href="/2026/09/24/bilidesk-tauri-libmpv/"><time datetime="2026-09-24T03:00:00.000Z">2026-09-24</time><span class="recent-title">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</span></a></li></ol>
+</section></aside>
+</div></main>
+<footer class="site-footer">
+<div class="wrap footer-inner">
+<div class="footer-brand">
+<a href="/">雨季少年的博客</a>
+<p>把想法写成代码，把过程留在这里。</p>
+</div>
+<nav class="footer-nav" aria-label="页脚导航">
+<a href="/">首页</a>
+<a href="/archives/">归档</a>
+<a href="/atom.xml">RSS 订阅</a>
+<a href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub<span class="nav-ext-mark" aria-hidden="true">↗</span></a>
+</nav>
+<p class="footer-note">© 2020–2026 雨季少年 · 个人博客，记录代码、生活与未完成的想法</p>
+</div>
+</footer>
+<button class="to-top" type="button" data-to-top aria-label="回到页面顶部" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><path d="M10 16.5V4M4.6 9.4 10 4l5.4 5.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<dialog id="search-dialog" aria-labelledby="search-title">
+<div class="search-head">
+<h2 id="search-title">搜索文章</h2>
+<button class="icon-btn" type="button" data-close-search aria-label="关闭搜索"><span aria-hidden="true">✕</span></button>
+</div>
+<div class="search-field">
+<span class="search-field-icon" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="8.7" cy="8.7" r="5.1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 12.6 17 17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+<label class="sr-only" for="search-input">输入标题、分类、标签或关键词</label>
+<input id="search-input" type="search" placeholder="输入标题、标签或关键词…" autocomplete="off" spellcheck="false">
+</div>
+<p id="search-status" class="search-status" role="status"></p>
+<ul class="search-results"><li class="search-item" data-search="AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染 一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。 插件与扩展 Python, AstrBot, HTML"><a href="/2026/09/24/astrbot-plugin-linuxsb/"><span class="search-meta">插件与扩展 · 2026-09-24 · 约 7 分钟</span><span class="search-title">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</span></a></li><li class="search-item" data-search="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。 插件与扩展 Lua, Rime, Bigram"><a href="/2026/09/24/rime-context-filter-bigram/"><span class="search-meta">插件与扩展 · 2026-09-24 · 约 6 分钟</span><span class="search-title">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</span></a></li><li class="search-item" data-search="KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽 把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。 Web 与可视化 CSS 3D, TypeScript, 可视化"><a href="/2026/09/24/keystats-3d-heatmap/"><span class="search-meta">Web 与可视化 · 2026-09-24 · 约 7 分钟</span><span class="search-title">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</span></a></li><li class="search-item" data-search="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。 后端工程 Go, STRM, 工程实践"><a href="/2026/09/24/smartstrm-cleanroom-go/"><span class="search-meta">后端工程 · 2026-09-24 · 约 8 分钟</span><span class="search-title">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</span></a></li><li class="search-item" data-search="BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。 桌面应用 Tauri, Rust, libmpv"><a href="/2026/09/24/bilidesk-tauri-libmpv/"><span class="search-meta">桌面应用 · 2026-09-24 · 约 7 分钟</span><span class="search-title">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</span></a></li><li class="search-item" data-search="TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继 TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。 桌面应用 Tauri, Rust, React"><a href="/2026/09/24/tiez-clipboard-tauri/"><span class="search-meta">桌面应用 · 2026-09-24 · 约 9 分钟</span><span class="search-title">TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</span></a></li><li class="search-item" data-search="TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器 TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。 Web 与可视化 Node.js, WebSocket, 遥测"><a href="/2026/09/24/truckdeck-telemetry-control/"><span class="search-meta">Web 与可视化 · 2026-09-24 · 约 10 分钟</span><span class="search-title">TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</span></a></li></ul>
+<p class="search-hint">按 <kbd>/</kbd> 打开搜索，<kbd>Esc</kbd> 关闭；多个关键词用空格分隔，搜索在本地完成。</p>
+</dialog>
 </body></html>

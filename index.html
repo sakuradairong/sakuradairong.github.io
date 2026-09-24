@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>雨季少年的博客</title>
-<meta name="description" content="记录代码里的思考，和把想法做成工具的过程。雨季少年的开源项目与开发手记。">
+<meta name="description" content="雨季少年的开源项目与开发手记：AstrBot 插件、Rime 输入法、Tauri 桌面端、Go 服务与前端可视化。">
 <meta property="og:title" content="雨季少年的博客">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://sakuradairong.github.io/">
-<meta property="og:description" content="记录代码里的思考，和把想法做成工具的过程。雨季少年的开源项目与开发手记。">
+<meta property="og:description" content="雨季少年的开源项目与开发手记：AstrBot 插件、Rime 输入法、Tauri 桌面端、Go 服务与前端可视化。">
 <meta property="og:site_name" content="雨季少年的博客">
 <meta name="twitter:card" content="summary">
 <meta name="generator" content="Rain Notes / build_site.py">
@@ -17,46 +18,350 @@
 <link rel="icon" href="/favicon.png">
 <link rel="alternate" href="/atom.xml" title="雨季少年的博客" type="application/atom+xml">
 <link rel="stylesheet" href="/css/style.css">
+<script>(function(){try{var s=localStorage.getItem('rain-theme');var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var t=(s==='dark'||s==='light')?s:(m?'dark':'light');var r=document.documentElement;r.setAttribute('data-theme',t);if(s==='dark'||s==='light'){r.setAttribute('data-theme-choice','user');}}catch(e){}})();</script>
 <script src="/js/script.js" defer></script>
 </head>
-<body>
+<body class="page-home">
 <a class="skip-link" href="#main">跳到正文</a>
-<header class="site-header"><div class="header-inner">
-<a class="brand" href="/" aria-label="雨季少年的博客首页"><span class="brand-mark" aria-hidden="true">雨</span><span>雨季少年<span class="brand-sub">代码与生活的切片</span></span></a>
-<nav aria-label="主导航"><a href="/" aria-current=page>手记</a><a href="/archives/">归档</a><a href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub ↗</a><button class="search-trigger" type="button" data-open-search hidden><span aria-hidden="true">⌕</span> 搜索 <kbd>/</kbd></button></nav>
-</div></header>
-<main id="main" class="site-main" tabindex="-1"><section class="hero" aria-labelledby="hero-title"><div class="hero-copy"><div class="eyebrow"><span class="status-dot"></span> A PERSONAL DEVELOPMENT JOURNAL</div><h1 id="hero-title">把想法写成代码，<br>把过程留在这里<span class="accent">。</span></h1><p>你好，我是雨季少年。<br>这里记录我的开源项目、工程实践，以及那些值得拆开聊聊的技术细节。</p><a class="primary-link" href="#notes">翻开开发手记 <span aria-hidden="true">↗</span></a></div><div class="hero-art" aria-hidden="true"><div class="art-grid"></div><span class="art-label">IDEAS → CODE → NOTES</span><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="art-center">雨<span>build. learn. write.</span></div><span class="art-cross cross-one">+</span><span class="art-cross cross-two">+</span><span class="art-caption">持续构建，保持好奇。<br><span>WORK IN PROGRESS / ALWAYS</span></span></div></section>
-<div class="journal-meta"><span><span class="status-dot"></span> 从真实项目中来</span><span>07 篇手记 <i>/</i> 最近更新 2026.09.24</span></div>
-<section id="notes" class="notes-section" aria-labelledby="notes-title"><div class="section-heading"><div><span class="eyebrow">THE NOTEBOOK</span><h2 id="notes-title">最近的探索<span>每一个细节，都有来由。</span></h2></div><a href="/archives/">全部归档 ↗</a></div><div class="filters" aria-label="按主题筛选" hidden><button type="button" data-filter="all" aria-pressed="true">全部手记 <span>7</span></button><button type="button" data-filter="插件与扩展" aria-pressed="false">插件与扩展</button><button type="button" data-filter="Web 与可视化" aria-pressed="false">Web 与可视化</button><button type="button" data-filter="后端工程" aria-pressed="false">后端工程</button><button type="button" data-filter="桌面应用" aria-pressed="false">桌面应用</button></div><p class="sr-only" id="filter-status" role="status"></p><div class="post-grid"><article class="post-card" data-category="插件与扩展">
-<div class="card-meta"><span>插件与扩展</span><span class="card-number">01</span></div>
-<h3><a href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a></h3>
-<p>一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。</p>
-<div class="tags"><span>Python</span><span>AstrBot</span><span>HTML</span></div><div class="card-bottom"><time datetime="2026-09-24T08:00:00.000Z">2026.09.24</time><span>约 7 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article><article class="post-card" data-category="插件与扩展">
-<div class="card-meta"><span>插件与扩展</span><span class="card-number">02</span></div>
-<h3><a href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a></h3>
-<p>rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。</p>
-<div class="tags"><span>Lua</span><span>Rime</span><span>Bigram</span></div><div class="card-bottom"><time datetime="2026-09-24T07:00:00.000Z">2026.09.24</time><span>约 6 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article><article class="post-card" data-category="Web 与可视化">
-<div class="card-meta"><span>Web 与可视化</span><span class="card-number">03</span></div>
-<h3><a href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a></h3>
-<p>把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。</p>
-<div class="tags"><span>CSS 3D</span><span>TypeScript</span><span>可视化</span></div><div class="card-bottom"><time datetime="2026-09-24T06:00:00.000Z">2026.09.24</time><span>约 7 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article><article class="post-card" data-category="后端工程">
-<div class="card-meta"><span>后端工程</span><span class="card-number">04</span></div>
-<h3><a href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a></h3>
-<p>smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。</p>
-<div class="tags"><span>Go</span><span>STRM</span><span>工程实践</span></div><div class="card-bottom"><time datetime="2026-09-24T05:00:00.000Z">2026.09.24</time><span>约 8 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article><article class="post-card" data-category="桌面应用">
-<div class="card-meta"><span>桌面应用</span><span class="card-number">05</span></div>
-<h3><a href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a></h3>
-<p>BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。</p>
-<div class="tags"><span>Tauri</span><span>Rust</span><span>libmpv</span></div><div class="card-bottom"><time datetime="2026-09-24T03:00:00.000Z">2026.09.24</time><span>约 7 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article><article class="post-card" data-category="桌面应用">
-<div class="card-meta"><span>桌面应用</span><span class="card-number">06</span></div>
-<h3><a href="/2026/09/24/tiez-clipboard-tauri/">TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</a></h3>
-<p>TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。</p>
-<div class="tags"><span>Tauri</span><span>Rust</span><span>React</span></div><div class="card-bottom"><time datetime="2026-09-24T02:00:00.000Z">2026.09.24</time><span>约 9 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article><article class="post-card" data-category="Web 与可视化">
-<div class="card-meta"><span>Web 与可视化</span><span class="card-number">07</span></div>
-<h3><a href="/2026/09/24/truckdeck-telemetry-control/">TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</a></h3>
-<p>TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。</p>
-<div class="tags"><span>Node.js</span><span>WebSocket</span><span>遥测</span></div><div class="card-bottom"><time datetime="2026-09-24T01:00:00.000Z">2026.09.24</time><span>约 10 分钟 <span class="card-arrow" aria-hidden="true">↗</span></span></div></article></div></section>
-<aside class="closing-note"><span class="closing-symbol" aria-hidden="true">*</span><div><h2>代码之外，也是记录。</h2><p>好的工具从一个小问题开始，好的记录让下一次探索更容易。</p></div><a href="https://github.com/sakuradairong" target="_blank" rel="noopener">去 GitHub 看看 ↗</a></aside></main>
-<footer class="site-footer"><div><a class="footer-brand" href="/">雨季少年<span> / </span>RAIN NOTES</a><p>在代码里探索，在文字里留痕。</p></div><div class="footer-right"><a href="/atom.xml">RSS 订阅 ↗</a><span>© 2020–2026 雨季少年</span></div></footer>
-<dialog id="search-dialog" aria-labelledby="search-title"><div class="search-heading"><h2 id="search-title">搜索手记</h2><button type="button" data-close-search aria-label="关闭搜索">✕</button></div><label class="sr-only" for="search-input">输入标题、技术或关键词</label><input id="search-input" type="search" placeholder="输入标题、技术或关键词…" autocomplete="off"><p id="search-status" role="status"></p><ul class="search-results"><li data-search="AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染 一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。 Python, AstrBot, HTML"><a href="/2026/09/24/astrbot-plugin-linuxsb/"><span>插件与扩展 · 2026-09-24</span>AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a></li><li data-search="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。 Lua, Rime, Bigram"><a href="/2026/09/24/rime-context-filter-bigram/"><span>插件与扩展 · 2026-09-24</span>Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a></li><li data-search="KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽 把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。 CSS 3D, TypeScript, 可视化"><a href="/2026/09/24/keystats-3d-heatmap/"><span>Web 与可视化 · 2026-09-24</span>KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a></li><li data-search="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。 Go, STRM, 工程实践"><a href="/2026/09/24/smartstrm-cleanroom-go/"><span>后端工程 · 2026-09-24</span>SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a></li><li data-search="BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。 Tauri, Rust, libmpv"><a href="/2026/09/24/bilidesk-tauri-libmpv/"><span>桌面应用 · 2026-09-24</span>BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a></li><li data-search="TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继 TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。 Tauri, Rust, React"><a href="/2026/09/24/tiez-clipboard-tauri/"><span>桌面应用 · 2026-09-24</span>TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</a></li><li data-search="TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器 TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。 Node.js, WebSocket, 遥测"><a href="/2026/09/24/truckdeck-telemetry-control/"><span>Web 与可视化 · 2026-09-24</span>TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</a></li></ul><p class="search-hint">按 Esc 关闭 · 搜索在本地完成</p></dialog>
+<nav class="topbar" aria-label="主导航">
+<div class="topbar-inner wrap">
+<a class="topbar-brand" href="/"><span class="brand-mark" aria-hidden="true">雨</span><span class="brand-text">雨季少年</span></a>
+<div class="topbar-actions">
+<a class="nav-link" href="/" aria-current="page">首页</a>
+<a class="nav-link" href="/archives/">归档</a>
+<a class="nav-link nav-ext" href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub<span class="nav-ext-mark" aria-hidden="true">↗</span></a>
+<button class="icon-btn" type="button" data-open-search aria-label="搜索文章" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="8.7" cy="8.7" r="5.1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 12.6 17 17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+<button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="切换到深色模式" aria-pressed="false" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" class="icon-sun"><circle cx="10" cy="10" r="3.9" fill="currentColor"/><path d="M10 1.5V4M10 16v2.5M1.5 10H4M16 10h2.5M4 4l1.8 1.8M14.2 14.2 16 16M16 4l-1.8 1.8M5.8 14.2 4 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" class="icon-moon"><path d="M15.8 13.2A6.6 6.6 0 0 1 7 4.3a6.8 6.8 0 1 0 8.8 8.9Z" fill="currentColor"/></svg></button>
+</div>
+</div>
+<div class="topbar-progress" aria-hidden="true"><span data-progress></span></div>
+</nav>
+<header class="hero hero--home">
+<div class="hero-media" aria-hidden="true"></div>
+<div class="hero-inner wrap">
+<p class="hero-kicker">RAIN NOTES · 代码与生活的切片</p>
+<h1 class="hero-title"><a href="/">雨季少年的博客</a></h1>
+<p class="hero-sub">把想法写成代码，把过程留在这里。</p>
+<ul class="hero-facts">
+<li><strong>7</strong> 篇文章</li>
+<li><strong>4</strong> 个分类</li>
+<li><strong>19</strong> 个标签</li>
+<li>最近更新 2026.09.24</li>
+</ul>
+</div>
+</header>
+<main id="main" class="site-main wrap" tabindex="-1"><div class="page-grid" data-filter-scope>
+<div class="page-main">
+<section class="toolbar" id="notes" aria-labelledby="notes-title">
+<div class="toolbar-head">
+<h2 id="notes-title">最新文章<span class="head-note">按时间倒序</span></h2>
+<p class="toolbar-meta" id="filter-status" role="status">共 7 篇手记 · 更新于 2026.09.24</p>
+</div>
+<div class="chips" data-filters role="group" aria-label="按分类筛选文章" hidden><button class="chip" type="button" data-filter="all" aria-pressed="true">全部<span class="chip-count">7</span></button><button class="chip" type="button" data-filter="Web 与可视化" aria-pressed="false">Web 与可视化<span class="chip-count">2</span></button><button class="chip" type="button" data-filter="插件与扩展" aria-pressed="false">插件与扩展<span class="chip-count">2</span></button><button class="chip" type="button" data-filter="桌面应用" aria-pressed="false">桌面应用<span class="chip-count">2</span></button><button class="chip" type="button" data-filter="后端工程" aria-pressed="false">后端工程<span class="chip-count">1</span></button></div>
+</section>
+<div class="post-list" data-filter-items><article class="post-item post-item--feature" data-item data-category="插件与扩展">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-astrbot-plugin-linuxsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-astrbot-plugin-linuxsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-astrbot-plugin-linuxsb" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-astrbot-plugin-linuxsb)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<g stroke="url(#ac-astrbot-plugin-linuxsb)" stroke-width="3" fill="none" stroke-linecap="round">
+<path d="M92 116 L74 150 L92 184"/>
+<path d="M140 116 L158 150 L140 184" stroke-dasharray="7 7" opacity=".7"/>
+</g>
+<g transform="translate(78,150) rotate(-45)" stroke="url(#ac-astrbot-plugin-linuxsb)" stroke-width="4" fill="none">
+<rect x="-13" y="-40" width="26" height="40" rx="13"/>
+<rect x="-13" y="0" width="26" height="40" rx="13"/>
+</g>
+<rect x="196" y="82" width="228" height="140" rx="16" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+<rect x="212" y="98" width="58" height="58" rx="10" fill="rgba(127,216,240,.22)" stroke="rgba(127,216,240,.45)" stroke-width="1.5"/>
+<path d="M226 156 L238 132 L250 146 L260 122 L268 156Z" fill="rgba(127,216,240,.35)"/>
+<rect x="284" y="102" width="122" height="10" rx="5" fill="rgba(255,255,255,.42)"/>
+<rect x="284" y="122" width="94" height="9" rx="4.5" fill="rgba(255,255,255,.26)"/>
+<rect x="284" y="140" width="108" height="9" rx="4.5" fill="rgba(255,255,255,.2)"/>
+<path d="M212 174 H408" stroke="rgba(255,255,255,.16)" stroke-width="1.5"/>
+<rect x="212" y="188" width="70" height="9" rx="4.5" fill="rgba(127,216,240,.5)"/>
+<rect x="294" y="188" width="46" height="9" rx="4.5" fill="rgba(255,255,255,.2)"/>
+<circle cx="418" cy="90" r="7" fill="url(#ac-astrbot-plugin-linuxsb)"/>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">插件与扩展</span><span class="post-mark">最新</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/astrbot-plugin-linuxsb/">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</a></h3>
+<p class="post-summary">一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。</p>
+<ul class="post-tags"><li>Python</li><li>AstrBot</li><li>HTML</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T08:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 7 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article><article class="post-item" data-item data-category="插件与扩展">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-rime-context-filter-bigram" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-rime-context-filter-bigram" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-rime-context-filter-bigram" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-rime-context-filter-bigram)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<rect x="190" y="62" width="100" height="42" rx="12" fill="rgba(127,216,240,.16)" stroke="url(#ac-rime-context-filter-bigram)" stroke-width="2"/>
+<rect x="58" y="62" width="100" height="42" rx="12" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="190" y="62" width="100" height="42" rx="12" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="322" y="62" width="100" height="42" rx="12" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="58" y="196" width="100" height="42" rx="12" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="190" y="196" width="100" height="42" rx="12" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="322" y="196" width="100" height="42" rx="12" fill="url(#ac-rime-context-filter-bigram)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+<path d="M240 104 C240 140 108 158 108 196" fill="none" stroke="url(#ac-rime-context-filter-bigram)" stroke-width="2.5" opacity=".55"/>
+<path d="M240 104 C240 142 240 158 240 196" fill="none" stroke="url(#ac-rime-context-filter-bigram)" stroke-width="2.5" opacity=".35" stroke-dasharray="6 6"/>
+<path d="M240 104 C240 140 372 158 372 196" fill="none" stroke="url(#ac-rime-context-filter-bigram)" stroke-width="3.5"/>
+<rect x="104" y="148" width="24" height="6" rx="3" fill="rgba(127,216,240,.5)"/>
+<rect x="350" y="148" width="44" height="6" rx="3" fill="url(#ac-rime-context-filter-bigram)"/>
+<g fill="rgba(255,255,255,.34)">
+<rect x="74" y="78" width="68" height="10" rx="5"/><rect x="206" y="78" width="68" height="10" rx="5"/>
+<rect x="338" y="78" width="68" height="10" rx="5"/><rect x="74" y="212" width="68" height="10" rx="5"/>
+<rect x="206" y="212" width="68" height="10" rx="5"/><rect x="338" y="212" width="68" height="10" rx="5"/>
+</g>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">插件与扩展</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/rime-context-filter-bigram/">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</a></h3>
+<p class="post-summary">rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。</p>
+<ul class="post-tags"><li>Lua</li><li>Rime</li><li>Bigram</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T07:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 6 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article><article class="post-item" data-item data-category="Web 与可视化">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-keystats-3d-heatmap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-keystats-3d-heatmap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-keystats-3d-heatmap" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-keystats-3d-heatmap)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<ellipse cx="240" cy="152" rx="206" ry="116" fill="url(#gl-keystats-3d-heatmap)"/>
+<rect x="52" y="80" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="89" y="80" width="31" height="31" rx="7" fill="#255f7e"/><rect x="126" y="80" width="31" height="31" rx="7" fill="#255f7e"/><rect x="163" y="80" width="31" height="31" rx="7" fill="#3996b1"/><rect x="200" y="80" width="31" height="31" rx="7" fill="#3996b1"/><rect x="237" y="80" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="274" y="80" width="31" height="31" rx="7" fill="#3996b1"/><rect x="311" y="80" width="31" height="31" rx="7" fill="#255f7e"/><rect x="348" y="80" width="31" height="31" rx="7" fill="#255f7e"/><rect x="385" y="80" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="52" y="119" width="31" height="31" rx="7" fill="#255f7e"/><rect x="89" y="119" width="31" height="31" rx="7" fill="#255f7e"/><rect x="126" y="119" width="31" height="31" rx="7" fill="#255f7e"/><rect x="163" y="119" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="200" y="119" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="237" y="119" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="274" y="119" width="31" height="31" rx="7" fill="#3996b1"/><rect x="311" y="119" width="31" height="31" rx="7" fill="#255f7e"/><rect x="348" y="119" width="31" height="31" rx="7" fill="#255f7e"/><rect x="385" y="119" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="52" y="158" width="31" height="31" rx="7" fill="#255f7e"/><rect x="89" y="158" width="31" height="31" rx="7" fill="#255f7e"/><rect x="126" y="158" width="31" height="31" rx="7" fill="#255f7e"/><rect x="163" y="158" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="200" y="158" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="237" y="158" width="31" height="31" rx="7" fill="#7fd8f0"/><rect x="274" y="158" width="31" height="31" rx="7" fill="#3996b1"/><rect x="311" y="158" width="31" height="31" rx="7" fill="#255f7e"/><rect x="348" y="158" width="31" height="31" rx="7" fill="#255f7e"/><rect x="385" y="158" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="52" y="197" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="89" y="197" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="126" y="197" width="31" height="31" rx="7" fill="#255f7e"/><rect x="163" y="197" width="31" height="31" rx="7" fill="#3996b1"/><rect x="200" y="197" width="31" height="31" rx="7" fill="#3996b1"/><rect x="237" y="197" width="31" height="31" rx="7" fill="#3996b1"/><rect x="274" y="197" width="31" height="31" rx="7" fill="#255f7e"/><rect x="311" y="197" width="31" height="31" rx="7" fill="#1b3a52"/><rect x="348" y="197" width="31" height="31" rx="7" fill="#255f7e"/><rect x="385" y="197" width="31" height="31" rx="7" fill="#1b3a52"/>
+<rect x="52" y="80" width="31" height="31" rx="7" fill="none" stroke="url(#ac-keystats-3d-heatmap)" stroke-width="2.5"/>
+<rect x="244" y="246" width="15" height="10" rx="3" fill="#1b3a52"/><rect x="268" y="246" width="15" height="10" rx="3" fill="#255f7e"/><rect x="292" y="246" width="15" height="10" rx="3" fill="#3996b1"/><rect x="316" y="246" width="15" height="10" rx="3" fill="#7fd8f0"/><rect x="340" y="246" width="15" height="10" rx="3" fill="#f0a95c"/>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">Web 与可视化</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/keystats-3d-heatmap/">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</a></h3>
+<p class="post-summary">把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。</p>
+<ul class="post-tags"><li>CSS 3D</li><li>TypeScript</li><li>可视化</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T06:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 7 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article><article class="post-item" data-item data-category="后端工程">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-smartstrm-cleanroom-go" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-smartstrm-cleanroom-go" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-smartstrm-cleanroom-go" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-smartstrm-cleanroom-go)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<ellipse cx="240" cy="152" rx="150" ry="106" fill="url(#gl-smartstrm-cleanroom-go)"/>
+<path d="M166 96 L206 130" stroke="rgba(255,255,255,.3)" stroke-width="2" fill="none"/>
+<path d="M314 96 L274 130" stroke="rgba(255,255,255,.3)" stroke-width="2" fill="none"/>
+<path d="M166 210 L206 172" stroke="rgba(127,216,240,.6)" stroke-width="2" fill="none" stroke-dasharray="6 6"/>
+<path d="M314 210 L274 172" stroke="rgba(255,255,255,.3)" stroke-width="2" fill="none"/>
+<rect x="62" y="66" width="104" height="58" rx="14" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="314" y="66" width="104" height="58" rx="14" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="62" y="182" width="104" height="58" rx="14" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/><rect x="314" y="182" width="104" height="58" rx="14" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+<rect x="186" y="118" width="108" height="64" rx="18" fill="url(#ac-smartstrm-cleanroom-go)"/>
+<path d="M214 150 h52 M240 134 v32" stroke="#082332" stroke-width="3" stroke-linecap="round" fill="none"/>
+<path d="M198 138 l9 -4 -2 10Z" fill="rgba(255,255,255,.5)"/>
+<path d="M282 138 l-9 -4 2 10Z" fill="rgba(255,255,255,.5)"/>
+<path d="M198 162 l7 6 -10 1Z" fill="rgba(127,216,240,.85)"/>
+<path d="M282 162 l-7 6 10 1Z" fill="rgba(255,255,255,.5)"/>
+<g fill="rgba(255,255,255,.34)">
+<rect x="96" y="86" width="36" height="10" rx="5"/><rect x="348" y="86" width="36" height="10" rx="5"/>
+<rect x="96" y="202" width="36" height="10" rx="5"/><rect x="348" y="202" width="36" height="10" rx="5"/>
+</g>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">后端工程</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/smartstrm-cleanroom-go/">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</a></h3>
+<p class="post-summary">smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。</p>
+<ul class="post-tags"><li>Go</li><li>STRM</li><li>工程实践</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T05:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 8 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article><article class="post-item" data-item data-category="桌面应用">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-bilidesk-tauri-libmpv" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-bilidesk-tauri-libmpv" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-bilidesk-tauri-libmpv" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-bilidesk-tauri-libmpv)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<rect x="86" y="70" width="308" height="168" rx="18" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+<g fill="rgba(127,216,240,.45)">
+<rect x="104" y="88" width="72" height="7" rx="3.5"/><rect x="188" y="88" width="52" height="7" rx="3.5"/>
+<rect x="252" y="88" width="86" height="7" rx="3.5" opacity=".55"/>
+</g>
+<circle cx="240" cy="150" r="40" fill="url(#ac-bilidesk-tauri-libmpv)"/>
+<path d="M231 134 L258 150 L231 166Z" fill="#082332"/>
+<g fill="rgba(255,255,255,.42)">
+<rect x="120" y="128" width="62" height="8" rx="4"/><rect x="120" y="148" width="44" height="8" rx="4"/>
+<rect x="300" y="128" width="62" height="8" rx="4"/><rect x="300" y="148" width="52" height="8" rx="4"/>
+</g>
+<rect x="110" y="208" width="260" height="7" rx="3.5" fill="rgba(255,255,255,.2)"/>
+<rect x="110" y="208" width="132" height="7" rx="3.5" fill="url(#ac-bilidesk-tauri-libmpv)"/>
+<circle cx="242" cy="211.5" r="9" fill="#eaf7fd"/>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">桌面应用</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/bilidesk-tauri-libmpv/">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</a></h3>
+<p class="post-summary">BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。</p>
+<ul class="post-tags"><li>Tauri</li><li>Rust</li><li>libmpv</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T03:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 7 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article><article class="post-item" data-item data-category="桌面应用">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-tiez-clipboard-tauri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-tiez-clipboard-tauri" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-tiez-clipboard-tauri" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-tiez-clipboard-tauri)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<rect x="118" y="70" width="168" height="132" rx="16" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.16)" stroke-width="1.5"/>
+<rect x="138" y="90" width="168" height="132" rx="16" fill="rgba(255,255,255,.09)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+<rect x="158" y="110" width="168" height="132" rx="16" fill="rgba(17,38,58,.92)" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+<rect x="204" y="102" width="76" height="16" rx="8" fill="url(#ac-tiez-clipboard-tauri)"/>
+<g fill="rgba(255,255,255,.34)">
+<rect x="180" y="142" width="112" height="10" rx="5"/>
+<rect x="180" y="164" width="86" height="10" rx="5"/>
+<rect x="180" y="186" width="124" height="10" rx="5"/>
+<rect x="180" y="208" width="64" height="10" rx="5"/>
+</g>
+<circle cx="364" cy="214" r="30" fill="url(#ac-tiez-clipboard-tauri)"/>
+<path d="M354 216 v-9 a10 10 0 0 1 20 0 v9" fill="none" stroke="#082332" stroke-width="4" stroke-linecap="round"/>
+<rect x="349" y="214" width="30" height="24" rx="7" fill="#082332"/>
+<circle cx="364" cy="224" r="3.4" fill="url(#ac-tiez-clipboard-tauri)"/>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">桌面应用</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/tiez-clipboard-tauri/">TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</a></h3>
+<p class="post-summary">TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。</p>
+<ul class="post-tags"><li>Tauri</li><li>Rust</li><li>React</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T02:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 9 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article><article class="post-item" data-item data-category="Web 与可视化">
+<div class="cover" aria-hidden="true">
+<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid slice" focusable="false">
+<defs>
+<linearGradient id="bg-truckdeck-telemetry-control" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1725"/><stop offset="1" stop-color="#152c42"/></linearGradient>
+<linearGradient id="ac-truckdeck-telemetry-control" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd8f0"/><stop offset="1" stop-color="#2ec4b6"/></linearGradient>
+<radialGradient id="gl-truckdeck-telemetry-control" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#6fd3ef" stop-opacity=".3"/><stop offset="1" stop-color="#6fd3ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="480" height="300" fill="url(#bg-truckdeck-telemetry-control)"/>
+<g fill="#cfe4f7" opacity=".5"><circle cx="24" cy="36" r=".9"/><circle cx="58" cy="16" r="1.3"/><circle cx="96" cy="52" r="1"/><circle cx="132" cy="22" r="1.1"/><circle cx="168" cy="60" r=".9"/><circle cx="206" cy="20" r="1.2"/><circle cx="244" cy="50" r="1"/><circle cx="286" cy="28" r="1.3"/><circle cx="322" cy="58" r=".9"/><circle cx="358" cy="18" r="1.1"/><circle cx="392" cy="46" r="1"/><circle cx="430" cy="72" r="1.2"/><circle cx="462" cy="30" r=".9"/><circle cx="14" cy="120" r=".9"/><circle cx="30" cy="170" r="1.1"/><circle cx="58" cy="110" r=".9"/><circle cx="466" cy="120" r="1"/><circle cx="452" cy="168" r=".9"/><circle cx="36" cy="224" r="1"/><circle cx="78" cy="264" r="1.2"/><circle cx="120" cy="290" r="1"/><circle cx="172" cy="258" r=".9"/><circle cx="216" cy="284" r="1.1"/><circle cx="264" cy="262" r="1"/><circle cx="310" cy="286" r="1.2"/><circle cx="354" cy="256" r=".9"/><circle cx="400" cy="282" r="1"/><circle cx="444" cy="252" r="1.1"/><circle cx="470" cy="208" r=".9"/></g>
+<path d="M0 246 Q240 208 480 246 L480 300 L0 300Z" fill="rgba(8,24,38,.72)"/>
+<path d="M80.5 124.7 A74 74 0 0 1 219.5 124.7" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="13" stroke-linecap="round"/>
+<path d="M80.5 124.7 A74 74 0 0 1 137.2 77.1" fill="none" stroke="url(#ac-truckdeck-telemetry-control)" stroke-width="13" stroke-linecap="round"/>
+<path d="M93.6 129.5 L85.2 126.4" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M102.4 113.5 L95.3 108.0" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M115.6 100.9 L110.4 93.5" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M132.0 92.8 L129.3 84.2" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M150.0 90.0 L150.0 81.0" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M168.0 92.8 L170.7 84.2" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M184.4 100.9 L189.6 93.5" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M197.6 113.5 L204.7 108.0" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/><path d="M206.4 129.5 L214.8 126.4" stroke="rgba(255,255,255,.34)" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M150 150 L176 84" stroke="#eaf7fd" stroke-width="4" stroke-linecap="round"/>
+<circle cx="150" cy="150" r="9" fill="#eaf7fd"/>
+<rect x="300" y="66" width="106" height="172" rx="20" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.22)" stroke-width="1.5"/>
+<rect x="312" y="86" width="82" height="104" rx="10" fill="rgba(17,38,58,.9)" stroke="rgba(255,255,255,.16)" stroke-width="1.5"/>
+<g fill="rgba(127,216,240,.65)">
+<rect x="324" y="98" width="34" height="8" rx="4"/><rect x="324" y="114" width="58" height="8" rx="4"/>
+</g>
+<rect x="324" y="150" width="58" height="6" rx="3" fill="rgba(255,255,255,.2)"/>
+<rect x="324" y="150" width="38" height="6" rx="3" fill="url(#ac-truckdeck-telemetry-control)"/>
+<g fill="rgba(255,255,255,.24)">
+<rect x="316" y="204" width="34" height="24" rx="7"/><rect x="358" y="204" width="34" height="24" rx="7"/>
+</g>
+<g stroke="url(#ac-truckdeck-telemetry-control)" stroke-width="3" fill="none" stroke-linecap="round">
+<path d="M236 96 a34 34 0 0 1 24 10"/><path d="M244 112 a22 22 0 0 1 14 7"/>
+</g>
+<circle cx="262" cy="126" r="3.6" fill="url(#ac-truckdeck-telemetry-control)"/>
+</svg>
+<span class="cover-tag">封面示意图</span>
+</div>
+<div class="post-body">
+<p class="post-flags"><span class="post-cat">Web 与可视化</span></p>
+<h3 class="post-title"><a class="post-link" href="/2026/09/24/truckdeck-telemetry-control/">TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</a></h3>
+<p class="post-summary">TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以…</p>
+<ul class="post-tags"><li>Node.js</li><li>WebSocket</li><li>遥测</li></ul>
+<p class="post-foot"><time datetime="2026-09-24T01:00:00.000Z">2026-09-24</time><span class="post-sep" aria-hidden="true">·</span><span>约 10 分钟</span><span class="post-more">阅读全文<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10h11M10.4 5.2 15.6 10l-5.2 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></p>
+</div>
+</article></div>
+<p class="list-end"><span aria-hidden="true">✳</span> 已经到底了，<a href="/archives/">去归档翻翻全部 7 篇</a></p>
+</div>
+<aside class="sidebar sidebar--home"><section class="widget widget-author">
+<div class="author-top">
+<img class="author-avatar" src="/css/images/avatar.svg" alt="" width="60" height="60" loading="lazy" decoding="async">
+<div class="author-id">
+<h2 class="widget-title">雨季少年</h2>
+<p class="author-handle">@sakuradairong</p>
+</div>
+</div>
+<p class="author-bio">把想法写成代码，把过程留在这里。记录开源项目、工程实践，以及那些值得拆开聊的技术细节。</p>
+<ul class="author-stats">
+<li><strong>7</strong><span>文章</span></li>
+<li><strong>4</strong><span>分类</span></li>
+<li><strong>19</strong><span>标签</span></li>
+</ul>
+<a class="btn-ghost" href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub<span aria-hidden="true">↗</span></a><a class="btn-ghost" href="/atom.xml">RSS 订阅</a>
+</section><section class="widget widget-cats">
+<h2 class="widget-title">分类</h2>
+<ul class="widget-list"><li><a href="#notes" data-filter-value="Web 与可视化"><span class="widget-label">Web 与可视化</span><span class="widget-count">2</span></a></li><li><a href="#notes" data-filter-value="插件与扩展"><span class="widget-label">插件与扩展</span><span class="widget-count">2</span></a></li><li><a href="#notes" data-filter-value="桌面应用"><span class="widget-label">桌面应用</span><span class="widget-count">2</span></a></li><li><a href="#notes" data-filter-value="后端工程"><span class="widget-label">后端工程</span><span class="widget-count">1</span></a></li></ul>
+<p class="widget-hint" data-filter-hint hidden>点击分类可筛选当前页面的文章列表。</p>
+</section><section class="widget widget-archive">
+<h2 class="widget-title">归档</h2>
+<ul class="widget-list widget-list--tree"><li><a href="/archives/2026/"><span class="widget-label">2026 年</span><span class="widget-count">7</span></a><ul class="archive-months"><li><a href="/archives/2026/09/"><span class="widget-label">09 月</span><span class="widget-count">7</span></a></li></ul></li></ul>
+<a class="widget-more" href="/archives/">全部归档<span aria-hidden="true">↗</span></a>
+</section><section class="widget widget-recent">
+<h2 class="widget-title">最近文章</h2>
+<ol class="recent-list"><li><a href="/2026/09/24/astrbot-plugin-linuxsb/"><time datetime="2026-09-24T08:00:00.000Z">2026-09-24</time><span class="recent-title">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</span></a></li><li><a href="/2026/09/24/rime-context-filter-bigram/"><time datetime="2026-09-24T07:00:00.000Z">2026-09-24</time><span class="recent-title">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</span></a></li><li><a href="/2026/09/24/keystats-3d-heatmap/"><time datetime="2026-09-24T06:00:00.000Z">2026-09-24</time><span class="recent-title">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</span></a></li><li><a href="/2026/09/24/smartstrm-cleanroom-go/"><time datetime="2026-09-24T05:00:00.000Z">2026-09-24</time><span class="recent-title">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</span></a></li><li><a href="/2026/09/24/bilidesk-tauri-libmpv/"><time datetime="2026-09-24T03:00:00.000Z">2026-09-24</time><span class="recent-title">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</span></a></li></ol>
+</section></aside>
+</div></main>
+<footer class="site-footer">
+<div class="wrap footer-inner">
+<div class="footer-brand">
+<a href="/">雨季少年的博客</a>
+<p>把想法写成代码，把过程留在这里。</p>
+</div>
+<nav class="footer-nav" aria-label="页脚导航">
+<a href="/">首页</a>
+<a href="/archives/">归档</a>
+<a href="/atom.xml">RSS 订阅</a>
+<a href="https://github.com/sakuradairong" target="_blank" rel="noopener">GitHub<span class="nav-ext-mark" aria-hidden="true">↗</span></a>
+</nav>
+<p class="footer-note">© 2020–2026 雨季少年 · 个人博客，记录代码、生活与未完成的想法</p>
+</div>
+</footer>
+<button class="to-top" type="button" data-to-top aria-label="回到页面顶部" hidden><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><path d="M10 16.5V4M4.6 9.4 10 4l5.4 5.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<dialog id="search-dialog" aria-labelledby="search-title">
+<div class="search-head">
+<h2 id="search-title">搜索文章</h2>
+<button class="icon-btn" type="button" data-close-search aria-label="关闭搜索"><span aria-hidden="true">✕</span></button>
+</div>
+<div class="search-field">
+<span class="search-field-icon" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="8.7" cy="8.7" r="5.1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 12.6 17 17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+<label class="sr-only" for="search-input">输入标题、分类、标签或关键词</label>
+<input id="search-input" type="search" placeholder="输入标题、标签或关键词…" autocomplete="off" spellcheck="false">
+</div>
+<p id="search-status" class="search-status" role="status"></p>
+<ul class="search-results"><li class="search-item" data-search="AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染 一个把 linux.sb 帖子链接变成预览卡片的 AstrBot 插件。真正的工作量在解析容错、卡片自适应布局，以及&quot;宁可报错也不发空卡片&quot;的失败策略上。 插件与扩展 Python, AstrBot, HTML"><a href="/2026/09/24/astrbot-plugin-linuxsb/"><span class="search-meta">插件与扩展 · 2026-09-24 · 约 7 分钟</span><span class="search-title">AstrBot linuxsb 插件：HTML 解析容错与自适应卡片渲染</span></a></li><li class="search-item" data-search="Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频 rime_context_filter 是一个跑在 Rime 里的词级二元模型过滤器：按&quot;前一个词&quot;调整候选顺序，落盘与提权分离，热路径无磁盘 IO，保存走 tmp→校验→bak→替换。本文拆它的打分公式、生命周期钩子与原子落盘策略。 插件与扩展 Lua, Rime, Bigram"><a href="/2026/09/24/rime-context-filter-bigram/"><span class="search-meta">插件与扩展 · 2026-09-24 · 约 6 分钟</span><span class="search-title">Rime 词级 bigram 过滤器：在 Lua 里做本地上下文调频</span></a></li><li class="search-item" data-search="KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽 把 KeyStats 导出的 JSON 变成可交互的 3D 键盘热力图，难点不在 3D，而在数据清洗、组合键拆分、色阶的感知均匀性与键盘布局的坐标建模。本文逐层拆解这几个函数。 Web 与可视化 CSS 3D, TypeScript, 可视化"><a href="/2026/09/24/keystats-3d-heatmap/"><span class="search-meta">Web 与可视化 · 2026-09-24 · 约 7 分钟</span><span class="search-title">KeyStats 3D 键盘热力图：CIELAB 色阶、对数归一化与 CSS-3D 键帽</span></a></li><li class="search-item" data-search="SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律 smartstrm-cleanroom 是 Go 从零实现的 STRM 生成、任务自动化与安全播放服务。比起功能清单，它更值得看的是纪律：严格配置校验、HMAC 签名播放、竞态测试、功能矩阵与&quot;未经验证不得标完成&quot;的完成规则。 后端工程 Go, STRM, 工程实践"><a href="/2026/09/24/smartstrm-cleanroom-go/"><span class="search-meta">后端工程 · 2026-09-24 · 约 8 分钟</span><span class="search-title">SmartStrm clean-room：用 Go 重写 STRM 服务的工程纪律</span></a></li><li class="search-item" data-search="BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS BiliDesk 是用 Tauri + React + libmpv 写的 Windows B 站桌面客户端。本文讲它怎么在 Rust 侧实现 WBI 签名、怎么用 DPAPI 保护登录态、怎么把弹幕转成 ASS 交给 mpv，以及为什么封面要走自定义协议。 桌面应用 Tauri, Rust, libmpv"><a href="/2026/09/24/bilidesk-tauri-libmpv/"><span class="search-meta">桌面应用 · 2026-09-24 · 约 7 分钟</span><span class="search-title">BiliDesk：Tauri + libmpv 桌面客户端——WBI 签名、DPAPI 会话与弹幕转 ASS</span></a></li><li class="search-item" data-search="TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继 TieZ 是一个 Tauri 2 + React + Rust 的跨平台剪贴板管理器，3.5 万行 Rust 里包含采集管线、SQLite 仓储、主题系统、WebDAV/MQTT 同步，以及一条刻意独立于云同步的加密中继通道。本文讲它的分层边界、主题令牌体系和中继的密码学设计。 桌面应用 Tauri, Rust, React"><a href="/2026/09/24/tiez-clipboard-tauri/"><span class="search-meta">桌面应用 · 2026-09-24 · 约 9 分钟</span><span class="search-title">TieZ：Tauri 2 剪贴板管线的分层、主题系统与 XChaCha20 加密中继</span></a></li><li class="search-item" data-search="TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器 TruckDeck 是一套跑在局域网 PC 上的 Node 服务，把 Euro Truck Simulator 2 / American Truck Simulator 的遥测推给手机浏览器，并把手机上的点按变成游戏按键。本文拆解它的模块划分、冻结的 WebSocket 契约、遥测与按键注入链路，以及&quot;绝不在 mock 模式下注入&quot;的边界设计。 Web 与可视化 Node.js, WebSocket, 遥测"><a href="/2026/09/24/truckdeck-telemetry-control/"><span class="search-meta">Web 与可视化 · 2026-09-24 · 约 10 分钟</span><span class="search-title">TruckDeck：用 Express + WebSocket 把 ETS2/ATS 遥测送进手机浏览器</span></a></li></ul>
+<p class="search-hint">按 <kbd>/</kbd> 打开搜索，<kbd>Esc</kbd> 关闭；多个关键词用空格分隔，搜索在本地完成。</p>
+</dialog>
 </body></html>
